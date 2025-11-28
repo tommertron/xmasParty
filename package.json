@@ -1,0 +1,16 @@
+{
+  "name": "xmas-party-planner",
+  "version": "1.0.0",
+  "description": "Christmas Party Planning Web App",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": ["christmas", "party", "planner"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}

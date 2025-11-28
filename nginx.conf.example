@@ -1,0 +1,36 @@
+# Example nginx configuration for Christmas Party App
+# Add this to your nginx server configuration
+
+server {
+    listen 80;
+    server_name your-domain.com;  # Change this to your domain
+
+    # Serve static files from the public directory
+    location / {
+        root /path/to/xmasParty/public;  # Change this to your actual path
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Proxy API requests to Node.js backend
+    location /api/ {
+        proxy_pass http://localhost:3001;  # Make sure this matches your Node.js port
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+# To use this configuration:
+# 1. Copy this file to /etc/nginx/sites-available/xmasparty
+# 2. Update the paths and domain name
+# 3. Create a symlink: sudo ln -s /etc/nginx/sites-available/xmasparty /etc/nginx/sites-enabled/
+# 4. Test the configuration: sudo nginx -t
+# 5. Reload nginx: sudo systemctl reload nginx
+# 6. Make sure your Node.js backend is running on port 3001:
+#    PORT=3001 node server.js
+#    (or use a process manager like pm2: pm2 start server.js --name xmasparty -- PORT=3001)

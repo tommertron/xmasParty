@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Christmas Party 2025 - Tom & Erin's</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <ul class="lightrope">
+        <li></li><li></li><li></li><li></li><li></li><li></li><li></li><li></li><li></li><li></li>
+        <li></li><li></li><li></li><li></li><li></li><li></li><li></li><li></li><li></li><li></li>
+        <li></li><li></li><li></li><li></li><li></li><li></li><li></li><li></li><li></li><li></li>
+        <li></li><li></li><li></li><li></li><li></li><li></li><li></li><li></li><li></li><li></li>
+        <li></li><li></li>
+    </ul>
+
+    <div class="snowflakes" aria-hidden="true">
+        <div class="snowflake">❅</div>
+        <div class="snowflake">❆</div>
+        <div class="snowflake">❅</div>
+        <div class="snowflake">❆</div>
+        <div class="snowflake">❅</div>
+        <div class="snowflake">❆</div>
+        <div class="snowflake">❅</div>
+        <div class="snowflake">❆</div>
+    </div>
+
+    <!-- Sticky Header -->
+    <div class="sticky-header">
+        <div class="sticky-content">
+            <div class="header-compact">
+                <h1>🎄 Christmas Party 2025</h1>
+                <div class="party-details-compact">
+                    <span>📅 Dec 13</span>
+                    <span>🏠 Tom & Erin's</span>
+                    <span>🕖 6 PM</span>
+                </div>
+            </div>
+
+            <div class="countdown-container">
+                <div class="countdown-label">Time Until Party!</div>
+                <div class="countdown-timer">
+                    <div class="countdown-unit">
+                        <div class="countdown-value" id="days">0</div>
+                        <div class="countdown-unit-label">Days</div>
+                    </div>
+                    <div class="countdown-unit">
+                        <div class="countdown-value" id="hours">0</div>
+                        <div class="countdown-unit-label">Hours</div>
+                    </div>
+                    <div class="countdown-unit">
+                        <div class="countdown-value" id="minutes">0</div>
+                        <div class="countdown-unit-label">Min</div>
+                    </div>
+                    <div class="countdown-unit">
+                        <div class="countdown-value" id="seconds">0</div>
+                        <div class="countdown-unit-label">Sec</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="guest-counter-sticky">
+                <div class="label">Confirmed Guests</div>
+                <div class="count" id="totalCountSticky">0</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <header class="header">
+            <h1>🎄 Christmas Party 2025 🎄</h1>
+            <div class="party-details">
+                <p><strong>📅 December 13th</strong></p>
+                <p><strong>🏠 Tom & Erin's Place</strong></p>
+                <p><strong>🕖 Arrive by 6 PM</strong></p>
+                <div class="featuring-yankee">🎁 Featuring a YANKEE SWAP! 🎁</div>
+            </div>
+        </header>
+
+        <div class="instructions">
+            <p>Add your family, who's coming, and what they're bringing below!</p>
+            <p class="scroll-note">Keep scrolling for Yankee Swap details!</p>
+        </div>
+
+        <section class="families-section">
+            <div class="section-header">
+                <h2>👨‍👩‍👧‍👦 Families</h2>
+                <button class="btn btn-add" onclick="showAddFamilyForm()">+ Add Family</button>
+            </div>
+
+            <div id="addFamilyForm" class="form-container" style="display: none;">
+                <input type="text" id="familyNameInput" placeholder="Family name (e.g., 'The Smiths')">
+                <select id="familyStatusInput">
+                    <option value="invited">📩 Invited</option>
+                    <option value="confirmed">✓ Confirmed</option>
+                    <option value="maybe">? Maybe</option>
+                    <option value="no">✗ Not Coming</option>
+                </select>
+                <button class="btn btn-primary" onclick="addFamily()">Add</button>
+                <button class="btn btn-secondary" onclick="hideAddFamilyForm()">Cancel</button>
+            </div>
+
+            <div id="familiesList" class="families-list"></div>
+        </section>
+
+        <div class="yankee-swap-section">
+            <div class="yankee-swap-header" onclick="toggleYankeeRules()">
+                <h2>🎁 Yankee Swap!</h2>
+                <p class="yankee-teaser">Bring a wrapped gift ($20 limit) for the gift exchange!</p>
+                <button class="expand-btn" id="expandBtn">▼ Show Rules</button>
+            </div>
+            <div class="yankee-rules" id="yankeeRules" style="display: none;">
+                <p class="rules-final">These are the final rules. There shall be no changes.</p>
+
+                <div class="rule-section">
+                    <strong>Gift Limit:</strong> $20
+                </div>
+                <div class="rule-section">
+                    <strong>Who's Playing:</strong> One combined game including both kids and adults. Choose a gift that anyone could enjoy.
+                </div>
+
+                <div class="rule-section">
+                    <strong>How It Works:</strong>
+                    <ol>
+                        <li>Everyone brings a wrapped gift and puts it in the pile.</li>
+                        <li>Each player draws a number. That's the order in which you'll take a turn.</li>
+                        <li>Player 1 picks any gift from the pile and opens it.</li>
+                        <li>Player 2 can either:
+                            <ul>
+                                <li>steal Player 1's opened gift, or</li>
+                                <li>choose a wrapped gift from the pile to open.</li>
+                            </ul>
+                        </li>
+                        <li>Play continues in number order. On your turn, you can either steal any previously opened gift or open a new one.</li>
+                        <li>A gift can only be stolen once per turn, and three times total. After a gift has been stolen three times, it's "frozen" and can't be taken again.</li>
+                        <li>If your gift is stolen, you immediately take another turn by choosing a new wrapped gift to open.</li>
+                        <li>After all gifts are opened, the first player gets one last chance to steal any unfrozen gift.</li>
+                    </ol>
+                </div>
+
+                <div class="rule-section final-note">
+                    <strong>Final notes:</strong> Have fun, keep it light, and aim for gifts that are kid-friendly and adult-friendly so everyone can play on equal footing.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

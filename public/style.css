@@ -720,6 +720,39 @@ body {
 .member-name {
     font-weight: bold;
     color: #333;
+    flex: 1;
+}
+
+/* Mobile arrow buttons - hidden on desktop */
+.mobile-arrows {
+    display: none;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.arrow-btn {
+    background: #165b33;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    width: 24px;
+    height: 18px;
+    cursor: pointer;
+    font-size: 0.7em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.arrow-btn:hover:not(.disabled) {
+    background: #1a7040;
+}
+
+.arrow-btn.disabled {
+    background: #ccc;
+    cursor: not-allowed;
+    opacity: 0.5;
 }
 
 .remove-member {
@@ -1041,6 +1074,20 @@ body {
 
     .member-columns {
         grid-template-columns: 1fr;
+    }
+
+    /* Show mobile arrows on touch devices */
+    .mobile-arrows {
+        display: flex;
+    }
+
+    /* Hide drag hint on mobile since we use arrows */
+    .empty-column {
+        font-size: 0.75em;
+    }
+
+    .member-tag {
+        cursor: default;
     }
 
     .countdown-timer {

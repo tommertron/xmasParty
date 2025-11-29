@@ -218,6 +218,25 @@ async function handleDrop(e, familyId, newStatus) {
     }
 }
 
+// Mobile arrow navigation for moving between columns
+const statusOrder = ['invited', 'swapping', 'attending', 'notcoming'];
+
+async function moveMemberUp(familyId, memberId, currentStatus) {
+    const currentIndex = statusOrder.indexOf(currentStatus);
+    if (currentIndex > 0) {
+        const newStatus = statusOrder[currentIndex - 1];
+        await changeMemberStatus(familyId, memberId, newStatus);
+    }
+}
+
+async function moveMemberDown(familyId, memberId, currentStatus) {
+    const currentIndex = statusOrder.indexOf(currentStatus);
+    if (currentIndex < statusOrder.length - 1) {
+        const newStatus = statusOrder[currentIndex + 1];
+        await changeMemberStatus(familyId, memberId, newStatus);
+    }
+}
+
 function renderFamilies() {
     const container = document.getElementById('familiesList');
 
@@ -235,15 +254,31 @@ function renderFamilies() {
         const attending = family.members.filter(m => m.status === 'attending');
         const notcoming = family.members.filter(m => m.status === 'notcoming');
 
-        const renderMemberTag = (member, status) => `
+        const renderMemberTag = (member, status) => {
+            const statusIndex = statusOrder.indexOf(status);
+            const canMoveUp = statusIndex > 0;
+            const canMoveDown = statusIndex < statusOrder.length - 1;
+
+            return `
             <div class="member-tag status-${status}"
                  draggable="true"
                  ondragstart="handleDragStart(event, '${family.id}', '${member.id}')"
                  ondragend="handleDragEnd(event)">
+                <div class="mobile-arrows">
+                    <button class="arrow-btn arrow-up ${canMoveUp ? '' : 'disabled'}"
+                            onclick="event.stopPropagation(); ${canMoveUp ? `moveMemberUp('${family.id}', '${member.id}', '${status}')` : ''}"
+                            title="Move up"
+                            ${canMoveUp ? '' : 'disabled'}>▲</button>
+                    <button class="arrow-btn arrow-down ${canMoveDown ? '' : 'disabled'}"
+                            onclick="event.stopPropagation(); ${canMoveDown ? `moveMemberDown('${family.id}', '${member.id}', '${status}')` : ''}"
+                            title="Move down"
+                            ${canMoveDown ? '' : 'disabled'}>▼</button>
+                </div>
                 <span class="member-name">${escapeHtml(member.name)}</span>
                 <button class="remove-member" onclick="removeMember('${family.id}', '${member.id}')" title="Remove">×</button>
             </div>
-        `;
+        `};
+
 
         const renderColumn = (title, members, status, colorClass) => `
             <div class="member-column ${colorClass}"
@@ -254,7 +289,7 @@ function renderFamilies() {
                 <div class="column-members">
                     ${members.length > 0
                         ? members.map(m => renderMemberTag(m, status)).join('')
-                        : '<div class="empty-column">Drag people here</div>'
+                        : '<div class="empty-column">Move people here</div>'
                     }
                 </div>
             </div>

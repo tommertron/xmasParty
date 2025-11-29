@@ -233,6 +233,7 @@ function renderFamilies() {
         const invited = family.members.filter(m => !m.status || m.status === 'invited');
         const swapping = family.members.filter(m => m.status === 'swapping');
         const attending = family.members.filter(m => m.status === 'attending');
+        const notcoming = family.members.filter(m => m.status === 'notcoming');
 
         const renderMemberTag = (member, status) => `
             <div class="member-tag status-${status}"
@@ -279,6 +280,7 @@ function renderFamilies() {
                     ${renderColumn('Invited', invited, 'invited', 'col-invited')}
                     ${renderColumn('Coming + Swapping', swapping, 'swapping', 'col-swapping')}
                     ${renderColumn('Coming (No Swap)', attending, 'attending', 'col-attending')}
+                    ${renderColumn('Not Coming', notcoming, 'notcoming', 'col-notcoming')}
                 </div>
             </div>
 

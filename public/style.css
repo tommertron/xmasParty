@@ -340,6 +340,19 @@ body {
     min-width: 130px;
 }
 
+.counter-box.guests-box {
+    text-decoration: none;
+    display: block;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.counter-box.guests-box:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(22, 91, 51, 0.3);
+}
+
 .counter-box.swapper-box {
     border-color: #c41e3a;
     text-decoration: none;

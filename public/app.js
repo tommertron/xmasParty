@@ -21,9 +21,11 @@ function switchTab(tabId) {
     // Close mobile menu after selection
     closeMobileMenu();
 
-    // Render food list if switching to food tab
+    // Render tab-specific content
     if (tabId === 'food') {
         renderAllFood();
+    } else if (tabId === 'yankee-swap') {
+        renderSwappers();
     }
 }
 
@@ -432,6 +434,32 @@ function renderFamilies() {
     }).join('');
 }
 
+// Render swappers list for Yankee Swap tab
+function renderSwappers() {
+    const container = document.getElementById('swappersList');
+    if (!container) return;
+
+    const swappers = [];
+    families.forEach(family => {
+        family.members.forEach(member => {
+            if (member.status === 'swapping') {
+                swappers.push({ name: member.name, familyName: family.name });
+            }
+        });
+    });
+
+    if (swappers.length === 0) {
+        container.innerHTML = '<p class="no-swappers">No swappers yet. Move people to "Coming + Swapping" in the Families tab!</p>';
+        return;
+    }
+
+    container.innerHTML = `
+        <ul class="swappers-names">
+            ${swappers.map(s => `<li>${escapeHtml(s.name)} <span class="swapper-family">(${escapeHtml(s.familyName)})</span></li>`).join('')}
+        </ul>
+    `;
+}
+
 // Render all food items for the Food tab
 function renderAllFood() {
     const container = document.getElementById('allFoodList');
@@ -508,6 +536,12 @@ function updateCounts() {
 
     document.getElementById('guestCount').textContent = guestCount;
     document.getElementById('swapperCount').textContent = swapperCount;
+    document.getElementById('foodCount').textContent = foodItems.length;
+
+    // Update swappers list if on that tab
+    if (currentTab === 'yankee-swap') {
+        renderSwappers();
+    }
 }
 
 // Utility functions

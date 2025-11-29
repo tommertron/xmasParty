@@ -69,6 +69,10 @@
                     <div class="label">Yankee Swappers <span class="rules-icon">📋</span></div>
                     <div class="count" id="swapperCount">0</div>
                 </button>
+                <button class="counter-box food-box" onclick="switchTab('food')">
+                    <div class="label">Food Items <span class="rules-icon">🍽️</span></div>
+                    <div class="count" id="foodCount">0</div>
+                </button>
             </div>
 
         </div>
@@ -122,6 +126,14 @@
                 <button class="theme-btn" id="themeBtn" onclick="toggleTheme(event)">🎵 Play Theme</button>
                 <audio id="yankeeTheme" src="Yankee swap.mp3"></audio>
             </div>
+
+            <div class="swappers-section swappers-top">
+                <h3>Brave Swappers</h3>
+                <div id="swappersList" class="swappers-list">
+                    <p class="no-swappers">No swappers yet. Move people to "Coming + Swapping" in the Families tab!</p>
+                </div>
+            </div>
+
             <div class="yankee-rules" id="yankeeRules">
                 <p class="rules-final">These are the final rules. There shall be no changes.</p>
 

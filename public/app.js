@@ -7,7 +7,7 @@ async function init() {
     await loadFamilies();
     await loadFood();
     renderFamilies();
-    updateTotalCount();
+    updateCounts();
     startCountdown();
 }
 
@@ -59,11 +59,11 @@ async function loadFood() {
     foodItems = await response.json();
 }
 
-async function createFamily(name, status) {
+async function createFamily(name) {
     const response = await fetch('/api/families', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, status })
+        body: JSON.stringify({ name })
     });
     return await response.json();
 }
@@ -81,11 +81,20 @@ async function deleteFamily(id) {
     await fetch(`/api/families/${id}`, { method: 'DELETE' });
 }
 
-async function addMemberToFamily(familyId, memberName) {
+async function addMemberToFamily(familyId, memberName, status = 'invited') {
     const response = await fetch(`/api/families/${familyId}/members`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: memberName })
+        body: JSON.stringify({ name: memberName, status })
+    });
+    return await response.json();
+}
+
+async function updateMemberStatus(familyId, memberId, status) {
+    const response = await fetch(`/api/families/${familyId}/members/${memberId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
     });
     return await response.json();
 }
@@ -122,7 +131,6 @@ function hideAddFamilyForm() {
 
 async function addFamily() {
     const nameInput = document.getElementById('familyNameInput');
-    const statusInput = document.getElementById('familyStatusInput');
     const name = nameInput.value.trim();
 
     if (!name) {
@@ -130,10 +138,10 @@ async function addFamily() {
         return;
     }
 
-    await createFamily(name, statusInput.value);
+    await createFamily(name);
     await loadFamilies();
     renderFamilies();
-    updateTotalCount();
+    updateCounts();
     hideAddFamilyForm();
 }
 
@@ -144,16 +152,9 @@ async function removeFamilyById(id) {
 
     await deleteFamily(id);
     await loadFamilies();
-    await loadFood(); // Reload food in case this family had items
+    await loadFood();
     renderFamilies();
-    updateTotalCount();
-}
-
-async function changeStatus(familyId, newStatus) {
-    await updateFamily(familyId, { status: newStatus });
-    await loadFamilies();
-    renderFamilies();
-    updateTotalCount();
+    updateCounts();
 }
 
 async function addMember(familyId) {
@@ -165,10 +166,10 @@ async function addMember(familyId) {
         return;
     }
 
-    await addMemberToFamily(familyId, name);
+    await addMemberToFamily(familyId, name, 'invited');
     await loadFamilies();
     renderFamilies();
-    updateTotalCount();
+    updateCounts();
     input.value = '';
 }
 
@@ -176,7 +177,45 @@ async function removeMember(familyId, memberId) {
     await removeMemberFromFamily(familyId, memberId);
     await loadFamilies();
     renderFamilies();
-    updateTotalCount();
+    updateCounts();
+}
+
+async function changeMemberStatus(familyId, memberId, newStatus) {
+    await updateMemberStatus(familyId, memberId, newStatus);
+    await loadFamilies();
+    renderFamilies();
+    updateCounts();
+}
+
+// Drag and Drop
+let draggedMember = null;
+
+function handleDragStart(e, familyId, memberId) {
+    draggedMember = { familyId, memberId };
+    e.target.classList.add('dragging');
+}
+
+function handleDragEnd(e) {
+    e.target.classList.remove('dragging');
+    draggedMember = null;
+}
+
+function handleDragOver(e) {
+    e.preventDefault();
+    e.currentTarget.classList.add('drag-over');
+}
+
+function handleDragLeave(e) {
+    e.currentTarget.classList.remove('drag-over');
+}
+
+async function handleDrop(e, familyId, newStatus) {
+    e.preventDefault();
+    e.currentTarget.classList.remove('drag-over');
+
+    if (draggedMember && draggedMember.familyId === familyId) {
+        await changeMemberStatus(familyId, draggedMember.memberId, newStatus);
+    }
 }
 
 function renderFamilies() {
@@ -188,44 +227,58 @@ function renderFamilies() {
     }
 
     container.innerHTML = families.map(family => {
-        // Get food items for this family
         const familyFoodItems = foodItems.filter(item => item.familyId === family.id);
+
+        // Group members by status
+        const invited = family.members.filter(m => !m.status || m.status === 'invited');
+        const swapping = family.members.filter(m => m.status === 'swapping');
+        const attending = family.members.filter(m => m.status === 'attending');
+
+        const renderMemberTag = (member, status) => `
+            <div class="member-tag status-${status}"
+                 draggable="true"
+                 ondragstart="handleDragStart(event, '${family.id}', '${member.id}')"
+                 ondragend="handleDragEnd(event)">
+                <span class="member-name">${escapeHtml(member.name)}</span>
+                <button class="remove-member" onclick="removeMember('${family.id}', '${member.id}')" title="Remove">×</button>
+            </div>
+        `;
+
+        const renderColumn = (title, members, status, colorClass) => `
+            <div class="member-column ${colorClass}"
+                 ondragover="handleDragOver(event)"
+                 ondragleave="handleDragLeave(event)"
+                 ondrop="handleDrop(event, '${family.id}', '${status}')">
+                <div class="column-header">${title}</div>
+                <div class="column-members">
+                    ${members.length > 0
+                        ? members.map(m => renderMemberTag(m, status)).join('')
+                        : '<div class="empty-column">Drag people here</div>'
+                    }
+                </div>
+            </div>
+        `;
 
         return `
         <div class="family-card">
             <div class="family-header">
                 <div class="family-name">${escapeHtml(family.name)}</div>
-                <div class="family-controls">
-                    <select class="status-selector" onchange="changeStatus('${family.id}', this.value)">
-                        <option value="invited" ${family.status === 'invited' ? 'selected' : ''}>📩 Invited</option>
-                        <option value="confirmed" ${family.status === 'confirmed' ? 'selected' : ''}>✓ Confirmed</option>
-                        <option value="maybe" ${family.status === 'maybe' ? 'selected' : ''}>? Maybe</option>
-                        <option value="no" ${family.status === 'no' ? 'selected' : ''}>✗ Not Coming</option>
-                    </select>
-                    <button class="btn btn-danger btn-small" onclick="removeFamilyById('${family.id}')">Remove Family</button>
-                </div>
+                <button class="btn btn-danger btn-small" onclick="removeFamilyById('${family.id}')">Remove Family</button>
             </div>
 
             <div class="members-section">
-                <strong>👥 Family Members Attending:</strong>
-                <div class="members-list">
-                    ${family.members.map(member => `
-                        <div class="member-tag">
-                            <span class="member-name">${escapeHtml(member.name)}</span>
-                            <button class="remove-member" onclick="removeMember('${family.id}', '${member.id}')" title="Remove">×</button>
-                        </div>
-                    `).join('')}
-                </div>
-                <div class="member-count">
-                    ${family.members.length} ${family.members.length === 1 ? 'person' : 'people'}
-                    ${family.status === 'confirmed' ? '(counted in total)' : '(not counted - update status to "Confirmed")'}
-                </div>
                 <div class="add-member-form">
                     <input type="text"
                            id="member-input-${family.id}"
-                           placeholder="Add person attending..."
+                           placeholder="Add a person..."
                            onkeypress="if(event.key === 'Enter') addMember('${family.id}')">
                     <button class="btn btn-primary btn-small" onclick="addMember('${family.id}')">Add Person</button>
+                </div>
+
+                <div class="member-columns">
+                    ${renderColumn('Invited', invited, 'invited', 'col-invited')}
+                    ${renderColumn('Coming + Swapping', swapping, 'swapping', 'col-swapping')}
+                    ${renderColumn('Coming (No Swap)', attending, 'attending', 'col-attending')}
                 </div>
             </div>
 
@@ -276,53 +329,24 @@ async function removeFood(id) {
     renderFamilies();
 }
 
-function renderFood() {
-    const container = document.getElementById('foodList');
+// Update counts
+function updateCounts() {
+    let guestCount = 0;
+    let swapperCount = 0;
 
-    if (families.length === 0) {
-        container.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">Add families first to start planning food!</p>';
-        return;
-    }
+    families.forEach(family => {
+        family.members.forEach(member => {
+            if (member.status === 'swapping') {
+                guestCount++;
+                swapperCount++;
+            } else if (member.status === 'attending') {
+                guestCount++;
+            }
+        });
+    });
 
-    container.innerHTML = families.map(family => {
-        const familyFoodItems = foodItems.filter(item => item.familyId === family.id);
-
-        return `
-            <div class="food-family">
-                <div class="food-family-header">
-                    <div class="food-family-name">${escapeHtml(family.name)}</div>
-                </div>
-
-                ${familyFoodItems.length > 0 ? `
-                    <ul class="food-items">
-                        ${familyFoodItems.map(item => `
-                            <li class="food-item">
-                                <span>${escapeHtml(item.item)}</span>
-                                <button class="btn btn-danger btn-small" onclick="removeFood('${item.id}')">Remove</button>
-                            </li>
-                        `).join('')}
-                    </ul>
-                ` : '<p style="color: #666; font-style: italic; margin-bottom: 10px;">No items added yet</p>'}
-
-                <div class="add-food-form">
-                    <input type="text"
-                           id="food-input-${family.id}"
-                           placeholder="What is this family bringing?"
-                           onkeypress="if(event.key === 'Enter') addFood('${family.id}')">
-                    <button class="btn btn-primary btn-small" onclick="addFood('${family.id}')">Add Item</button>
-                </div>
-            </div>
-        `;
-    }).join('');
-}
-
-// Update total count
-function updateTotalCount() {
-    const total = families
-        .filter(f => f.status === 'confirmed')
-        .reduce((sum, f) => sum + f.members.length, 0);
-
-    document.getElementById('totalCountSticky').textContent = total;
+    document.getElementById('guestCount').textContent = guestCount;
+    document.getElementById('swapperCount').textContent = swapperCount;
 }
 
 // Utility functions

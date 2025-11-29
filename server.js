@@ -102,13 +102,33 @@ app.post('/api/families/:id/members', async (req, res) => {
     }
     const newMember = {
       id: Date.now().toString(),
-      name: req.body.name
+      name: req.body.name,
+      status: req.body.status || 'invited'
     };
     family.members.push(newMember);
     await writeJSON('families.json', families);
     res.json(newMember);
   } catch (error) {
     res.status(500).json({ error: 'Failed to add member' });
+  }
+});
+
+app.put('/api/families/:familyId/members/:memberId', async (req, res) => {
+  try {
+    const families = await readJSON('families.json');
+    const family = families.find(f => f.id === req.params.familyId);
+    if (!family) {
+      return res.status(404).json({ error: 'Family not found' });
+    }
+    const member = family.members.find(m => m.id === req.params.memberId);
+    if (!member) {
+      return res.status(404).json({ error: 'Member not found' });
+    }
+    Object.assign(member, req.body);
+    await writeJSON('families.json', families);
+    res.json(member);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update member' });
   }
 });
 

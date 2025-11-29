@@ -34,7 +34,7 @@
                 <div class="party-details-compact">
                     <span>📅 Dec 13</span>
                     <span>🏠 Tom & Erin's</span>
-                    <span>🕖 6 PM</span>
+                    <span>🕖 6 PM - ???</span>
                 </div>
             </div>
 
@@ -60,9 +60,15 @@
                 </div>
             </div>
 
-            <div class="guest-counter-sticky">
-                <div class="label">Confirmed Guests</div>
-                <div class="count" id="totalCountSticky">0</div>
+            <div class="counters-sticky">
+                <div class="counter-box">
+                    <div class="label">Confirmed Guests</div>
+                    <div class="count" id="guestCount">0</div>
+                </div>
+                <div class="counter-box swapper-box">
+                    <div class="label">Yankee Swappers</div>
+                    <div class="count" id="swapperCount">0</div>
+                </div>
             </div>
         </div>
     </div>
@@ -73,7 +79,7 @@
             <div class="party-details">
                 <p><strong>📅 December 13th</strong></p>
                 <p><strong>🏠 Tom & Erin's Place</strong></p>
-                <p><strong>🕖 Arrive by 6 PM</strong></p>
+                <p><strong>🕖 6 PM until "Tom Starts Throwing Things at Mike on the Front Lawn"</strong></p>
                 <div class="featuring-yankee">🎁 Featuring a YANKEE SWAP! 🎁</div>
             </div>
         </header>
@@ -91,12 +97,6 @@
 
             <div id="addFamilyForm" class="form-container" style="display: none;">
                 <input type="text" id="familyNameInput" placeholder="Family name (e.g., 'The Smiths')">
-                <select id="familyStatusInput">
-                    <option value="invited">📩 Invited</option>
-                    <option value="confirmed">✓ Confirmed</option>
-                    <option value="maybe">? Maybe</option>
-                    <option value="no">✗ Not Coming</option>
-                </select>
                 <button class="btn btn-primary" onclick="addFamily()">Add</button>
                 <button class="btn btn-secondary" onclick="hideAddFamilyForm()">Cancel</button>
             </div>

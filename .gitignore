@@ -3,3 +3,4 @@ data/*.json
 config.json
 *.log
 deploy-local.sh
+.openai-key

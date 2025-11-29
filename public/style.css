@@ -644,6 +644,15 @@ body {
     font-size: 0.9em;
 }
 
+/* Footer */
+.site-footer {
+    text-align: center;
+    padding: 20px;
+    margin-top: 40px;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.85em;
+}
+
 .families-section, .food-section {
     margin-bottom: 40px;
 }

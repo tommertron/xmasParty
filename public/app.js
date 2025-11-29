@@ -371,5 +371,30 @@ function toggleYankeeRules() {
     }
 }
 
+// Yankee Swap theme music
+function toggleTheme(e) {
+    if (e) e.stopPropagation();
+    const audio = document.getElementById('yankeeTheme');
+    const btn = document.getElementById('themeBtn');
+    if (audio.paused) {
+        audio.play();
+        btn.textContent = '🔊 Stop Theme';
+    } else {
+        audio.pause();
+        audio.currentTime = 0;
+        btn.textContent = '🎵 Play Theme';
+    }
+}
+
+// Reset button when audio ends
+document.addEventListener('DOMContentLoaded', () => {
+    const audio = document.getElementById('yankeeTheme');
+    if (audio) {
+        audio.addEventListener('ended', () => {
+            document.getElementById('themeBtn').textContent = '🎵 Play Theme';
+        });
+    }
+});
+
 // Initialize on page load
 init();

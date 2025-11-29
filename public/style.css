@@ -311,6 +311,24 @@ body {
     background: rgba(255, 255, 255, 0.3);
 }
 
+.theme-btn {
+    background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+    border: none;
+    color: #333;
+    padding: 8px 20px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.9em;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    margin-left: 10px;
+}
+
+.theme-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+}
+
 .yankee-rules {
     background: white;
     padding: 25px;

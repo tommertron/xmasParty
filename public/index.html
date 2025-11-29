@@ -108,7 +108,9 @@
             <div class="yankee-swap-header" onclick="toggleYankeeRules()">
                 <h2>🎁 Yankee Swap!</h2>
                 <p class="yankee-teaser">Bring a wrapped gift ($20 limit) for the gift exchange!</p>
-                <button class="expand-btn" id="expandBtn">▼ Show Rules</button>
+                <button class="expand-btn" id="expandBtn" onclick="event.stopPropagation(); toggleYankeeRules()">▼ Show Rules</button>
+                <button class="theme-btn" id="themeBtn" onclick="toggleTheme(event)">🎵 Play Theme</button>
+                <audio id="yankeeTheme" src="Yankee swap.mp3"></audio>
             </div>
             <div class="yankee-rules" id="yankeeRules" style="display: none;">
                 <p class="rules-final">These are the final rules. There shall be no changes.</p>

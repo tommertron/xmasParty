@@ -10,7 +10,7 @@ body {
     color: #2d2d2d;
     min-height: 100vh;
     padding: 20px;
-    padding-top: 180px; /* Space for sticky header */
+    padding-top: 230px; /* Space for sticky header + tab nav */
     position: relative;
     overflow-x: hidden;
 }
@@ -48,6 +48,154 @@ body {
     to {
         transform: translateY(100vh);
     }
+}
+
+/* Tab Navigation */
+.tab-nav {
+    margin: 10px -20px -10px -20px;
+    padding: 0 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.tab-buttons {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    gap: 5px;
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 12px 20px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 1em;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.8);
+    transition: all 0.3s ease;
+    border-bottom: 3px solid transparent;
+}
+
+.tab-btn:hover {
+    color: white;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.tab-btn.active {
+    color: white;
+    border-bottom-color: #ffd700;
+    background: rgba(255, 255, 255, 0.15);
+}
+
+/* Hamburger button - hidden on desktop */
+.hamburger-btn {
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    padding: 10px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+}
+
+.hamburger-line {
+    width: 25px;
+    height: 3px;
+    background: white;
+    border-radius: 2px;
+    transition: all 0.3s ease;
+}
+
+/* Tab Content */
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Food Overview Section */
+.food-overview-section {
+    margin-bottom: 40px;
+}
+
+.all-food-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.food-category-card {
+    background: #fff8e1;
+    border: 2px solid #ffa726;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.food-category-card h3 {
+    color: #e65100;
+    margin-bottom: 15px;
+    font-size: 1.2em;
+    border-bottom: 2px solid #ffa726;
+    padding-bottom: 8px;
+}
+
+.food-category-list {
+    list-style: none;
+}
+
+.food-category-item {
+    background: white;
+    padding: 10px 15px;
+    margin: 8px 0;
+    border-radius: 8px;
+    border-left: 4px solid #ffa726;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.food-item-name {
+    font-weight: 500;
+    color: #333;
+}
+
+.food-item-family {
+    font-size: 0.85em;
+    color: #666;
+    font-style: italic;
+}
+
+.no-food-message {
+    text-align: center;
+    color: #666;
+    padding: 40px;
+    font-style: italic;
+    grid-column: 1 / -1;
+}
+
+.food-edit-note {
+    text-align: center;
+    color: #666;
+    font-style: italic;
+    margin-bottom: 10px;
+}
+
+.add-family-footer {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 2px dashed #ddd;
+    text-align: center;
+}
+
+.add-family-footer .form-container {
+    margin-top: 15px;
+    justify-content: center;
 }
 
 .container {
@@ -197,6 +345,8 @@ body {
     text-decoration: none;
     display: block;
     transition: all 0.2s ease;
+    cursor: pointer;
+    font-family: inherit;
 }
 
 .counter-box.swapper-box:hover {
@@ -243,6 +393,9 @@ body {
     display: inline-block;
     text-align: center;
     white-space: nowrap;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
 }
 
 .yankee-link-btn:hover {
@@ -306,13 +459,7 @@ body {
 
 .yankee-swap-header {
     padding: 20px;
-    cursor: pointer;
     text-align: center;
-    transition: background 0.3s ease;
-}
-
-.yankee-swap-header:hover {
-    background: rgba(0, 0, 0, 0.1);
 }
 
 .yankee-swap-header h2 {
@@ -366,6 +513,7 @@ body {
     background: white;
     padding: 25px;
     border-top: 3px solid #ffd700;
+    display: block;
 }
 
 .rules-final {
@@ -972,7 +1120,62 @@ body {
 
 @media (max-width: 768px) {
     body {
-        padding-top: 110px; /* Even more compact mobile header */
+        padding-top: 165px; /* Compact mobile header + tab nav */
+    }
+
+    /* Mobile Tab Navigation */
+    .tab-nav {
+        position: relative;
+        margin: 8px -8px -5px -8px;
+        padding: 0;
+    }
+
+    .hamburger-btn {
+        display: flex;
+        padding: 10px 12px;
+    }
+
+    .tab-buttons {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        flex-direction: column;
+        background: rgba(26, 71, 42, 0.98);
+        backdrop-filter: blur(10px);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease;
+    }
+
+    .tab-buttons.open {
+        max-height: 200px;
+    }
+
+    .tab-btn {
+        padding: 15px 20px;
+        text-align: left;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        border-left: 3px solid transparent;
+    }
+
+    .tab-btn.active {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        border-left-color: #ffd700;
+    }
+
+    /* Hamburger animation when open */
+    .hamburger-btn.open .hamburger-line:nth-child(1) {
+        transform: rotate(45deg) translate(5px, 5px);
+    }
+
+    .hamburger-btn.open .hamburger-line:nth-child(2) {
+        opacity: 0;
+    }
+
+    .hamburger-btn.open .hamburger-line:nth-child(3) {
+        transform: rotate(-45deg) translate(6px, -6px);
     }
 
     .container {

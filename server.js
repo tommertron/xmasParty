@@ -39,6 +39,29 @@ async function writeJSON(filename, data) {
   await fs.writeFile(filepath, JSON.stringify(data, null, 2), 'utf8');
 }
 
+// API Endpoint - Config (uses config.json if exists, falls back to config.example.json)
+app.get('/api/config', async (req, res) => {
+  try {
+    const configPath = path.join(__dirname, 'config.json');
+    const exampleConfigPath = path.join(__dirname, 'config.example.json');
+
+    let configData;
+    try {
+      configData = await fs.readFile(configPath, 'utf8');
+    } catch (error) {
+      if (error.code === 'ENOENT') {
+        // config.json doesn't exist, use example
+        configData = await fs.readFile(exampleConfigPath, 'utf8');
+      } else {
+        throw error;
+      }
+    }
+    res.json(JSON.parse(configData));
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to read config' });
+  }
+});
+
 // API Endpoints - Families
 app.get('/api/families', async (req, res) => {
   try {

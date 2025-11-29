@@ -1,0 +1,17 @@
+{
+  "party": {
+    "title": "Christmas Party 2025",
+    "hosts": "Your Name",
+    "date": "December 25th",
+    "dateShort": "Dec 25",
+    "time": "6 PM - Late",
+    "timeLong": "6 PM until whenever!",
+    "partyDateTime": "2025-12-25T18:00:00"
+  },
+  "yankeeSwap": {
+    "enabled": true,
+    "giftLimit": "$20",
+    "whoPlays": "One combined game including both kids and adults. Choose a gift that anyone could enjoy.",
+    "finalNote": "Have fun, keep it light, and aim for gifts that are kid-friendly and adult-friendly so everyone can play on equal footing."
+  }
+}

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Christmas Party 2025 - Tom & Erin's</title>
+    <title>Christmas Party</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -30,11 +30,11 @@
     <div class="sticky-header">
         <div class="sticky-content">
             <div class="header-compact">
-                <h1>🎄 Christmas Party 2025</h1>
+                <h1>🎄 <span id="stickyTitle">Loading...</span></h1>
                 <div class="party-details-compact">
-                    <span>📅 Dec 13</span>
-                    <span>🏠 Tom & Erin's</span>
-                    <span>🕖 6 PM - ???</span>
+                    <span>📅 <span id="stickyDate"></span></span>
+                    <span>🏠 <span id="stickyLocation"></span></span>
+                    <span>🕖 <span id="stickyTime"></span></span>
                 </div>
             </div>
 
@@ -65,70 +65,76 @@
                     <div class="label">Confirmed Guests</div>
                     <div class="count" id="guestCount">0</div>
                 </div>
-                <a href="#yankee-swap" class="counter-box swapper-box">
+                <button class="counter-box swapper-box" onclick="switchTab('yankee-swap')">
                     <div class="label">Yankee Swappers <span class="rules-icon">📋</span></div>
                     <div class="count" id="swapperCount">0</div>
-                </a>
+                </button>
             </div>
 
-            <a href="#yankee-swap" class="yankee-link-btn">
-                🎁 Yankee Swap Rules
-            </a>
         </div>
+
+        <!-- Tab Navigation -->
+        <nav class="tab-nav">
+            <button class="hamburger-btn" onclick="toggleMobileMenu()" aria-label="Menu">
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+            </button>
+            <div class="tab-buttons">
+                <button class="tab-btn active" data-tab="families" onclick="switchTab('families')">👨‍👩‍👧‍👦 Families</button>
+                <button class="tab-btn" data-tab="yankee-swap" onclick="switchTab('yankee-swap')">🎁 Yankee Swap</button>
+                <button class="tab-btn" data-tab="food" onclick="switchTab('food')">🍽️ Food</button>
+            </div>
+        </nav>
     </div>
 
     <div class="container">
-        <header class="header">
-            <h1>🎄 Christmas Party 2025 🎄</h1>
-            <div class="party-details">
-                <p><strong>📅 December 13th</strong></p>
-                <p><strong>🏠 Tom & Erin's Place</strong></p>
-                <p><strong>🕖 6 PM until "Tom Starts Throwing Things at Mike on the Front Lawn"</strong></p>
-                <div class="featuring-yankee">🎁 Featuring a YANKEE SWAP! 🎁</div>
-            </div>
-        </header>
-
-        <div class="instructions">
-            <p>Add your family, who's coming, and what they're bringing below!</p>
-            <p class="scroll-note">Keep scrolling for Yankee Swap details!</p>
-        </div>
-
-        <section class="families-section">
-            <div class="section-header">
-                <h2>👨‍👩‍👧‍👦 Families</h2>
-                <button class="btn btn-add" onclick="showAddFamilyForm()">+ Add Family</button>
+        <!-- Families Tab -->
+        <div class="tab-content active" id="tab-families">
+            <div class="instructions">
+                <p>Add your family, who's coming, and what they're bringing below!</p>
             </div>
 
-            <div id="addFamilyForm" class="form-container" style="display: none;">
-                <input type="text" id="familyNameInput" placeholder="Family name (e.g., 'The Smiths')">
-                <button class="btn btn-primary" onclick="addFamily()">Add</button>
-                <button class="btn btn-secondary" onclick="hideAddFamilyForm()">Cancel</button>
-            </div>
+            <section class="families-section">
+                <div class="section-header">
+                    <h2>👨‍👩‍👧‍👦 Families</h2>
+                </div>
 
-            <div id="familiesList" class="families-list"></div>
-        </section>
+                <div id="familiesList" class="families-list"></div>
 
-        <div class="yankee-swap-section" id="yankee-swap">
-            <div class="yankee-swap-header" onclick="toggleYankeeRules()">
+                <div class="add-family-footer">
+                    <button class="btn btn-add" onclick="showAddFamilyForm()">+ Add Family</button>
+                    <div id="addFamilyForm" class="form-container" style="display: none;">
+                        <input type="text" id="familyNameInput" placeholder="Family name (e.g., 'The Smiths')">
+                        <button class="btn btn-primary" onclick="addFamily()">Add</button>
+                        <button class="btn btn-secondary" onclick="hideAddFamilyForm()">Cancel</button>
+                    </div>
+                </div>
+            </section>
+        </div><!-- end tab-families -->
+
+        <!-- Yankee Swap Tab -->
+        <div class="tab-content" id="tab-yankee-swap">
+            <div class="yankee-swap-section" id="yankeeSwapSection">
+            <div class="yankee-swap-header">
                 <h2>🎁 Yankee Swap!</h2>
-                <p class="yankee-teaser">Bring a wrapped gift ($20 limit) for the gift exchange!</p>
-                <button class="expand-btn" id="expandBtn" onclick="event.stopPropagation(); toggleYankeeRules()">▼ Show Rules</button>
+                <p class="yankee-teaser">Bring a wrapped gift (<span id="giftLimit">$20</span> limit) for the gift exchange!</p>
                 <button class="theme-btn" id="themeBtn" onclick="toggleTheme(event)">🎵 Play Theme</button>
                 <audio id="yankeeTheme" src="Yankee swap.mp3"></audio>
             </div>
-            <div class="yankee-rules" id="yankeeRules" style="display: none;">
+            <div class="yankee-rules" id="yankeeRules">
                 <p class="rules-final">These are the final rules. There shall be no changes.</p>
 
                 <div class="rule-section">
-                    <strong>Gift Limit:</strong> $20
+                    <strong>Gift Limit:</strong> <span id="giftLimitRules">$20</span>
                 </div>
                 <div class="rule-section">
-                    <strong>Who's Playing:</strong> One combined game including both kids and adults. Choose a gift that anyone could enjoy.
+                    <strong>Who's Playing:</strong> <span id="whoPlays">One combined game including both kids and adults.</span>
                 </div>
 
                 <div class="rule-section">
                     <strong>How It Works:</strong>
-                    <ol>
+                    <ol id="yankeeRulesList">
                         <li>Everyone brings a wrapped gift and puts it in the pile.</li>
                         <li>Each player draws a number. That's the order in which you'll take a turn.</li>
                         <li>Player 1 picks any gift from the pile and opens it.</li>
@@ -146,10 +152,24 @@
                 </div>
 
                 <div class="rule-section final-note">
-                    <strong>Final notes:</strong> Have fun, keep it light, and aim for gifts that are kid-friendly and adult-friendly so everyone can play on equal footing.
+                    <strong>Final notes:</strong> <span id="finalNote">Have fun, keep it light, and aim for gifts that are kid-friendly and adult-friendly so everyone can play on equal footing.</span>
                 </div>
             </div>
         </div>
+        </div><!-- end tab-yankee-swap -->
+
+        <!-- Food Tab -->
+        <div class="tab-content" id="tab-food">
+            <section class="food-overview-section">
+                <div class="section-header">
+                    <h2>🍽️ Party Menu</h2>
+                </div>
+                <p class="food-edit-note">To add or remove food items, go to the Families tab.</p>
+                <div id="allFoodList" class="all-food-list">
+                    <p class="no-food-message">No food items yet. Add them in the Families tab!</p>
+                </div>
+            </section>
+        </div><!-- end tab-food -->
     </div>
 
     <script src="app.js"></script>

@@ -1,20 +1,100 @@
 // State
 let families = [];
 let foodItems = [];
+let config = null;
+let currentTab = 'families';
+
+// Tab Navigation
+function switchTab(tabId) {
+    currentTab = tabId;
+
+    // Update tab buttons
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tab === tabId);
+    });
+
+    // Update tab content
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.toggle('active', content.id === `tab-${tabId}`);
+    });
+
+    // Close mobile menu after selection
+    closeMobileMenu();
+
+    // Render food list if switching to food tab
+    if (tabId === 'food') {
+        renderAllFood();
+    }
+}
+
+function toggleMobileMenu() {
+    const hamburger = document.querySelector('.hamburger-btn');
+    const tabButtons = document.querySelector('.tab-buttons');
+
+    hamburger.classList.toggle('open');
+    tabButtons.classList.toggle('open');
+}
+
+function closeMobileMenu() {
+    const hamburger = document.querySelector('.hamburger-btn');
+    const tabButtons = document.querySelector('.tab-buttons');
+
+    hamburger.classList.remove('open');
+    tabButtons.classList.remove('open');
+}
 
 // Initialize app
 async function init() {
+    await loadConfig();
     await loadFamilies();
     await loadFood();
+    applyConfig();
     renderFamilies();
     updateCounts();
     startCountdown();
 }
 
+// Load and apply config
+async function loadConfig() {
+    const response = await fetch('/api/config');
+    config = await response.json();
+}
+
+function applyConfig() {
+    if (!config) return;
+
+    const { party, yankeeSwap } = config;
+
+    // Update page title
+    document.title = `${party.title} - ${party.hosts}'s`;
+
+    // Update sticky header
+    document.getElementById('stickyTitle').textContent = party.title;
+    document.getElementById('stickyDate').textContent = party.dateShort;
+    document.getElementById('stickyLocation').textContent = party.hosts + "'s";
+    document.getElementById('stickyTime').textContent = party.time;
+
+    // Update Yankee Swap section
+    if (yankeeSwap && yankeeSwap.enabled) {
+        document.getElementById('yankeeSwapSection').style.display = 'block';
+        document.getElementById('giftLimit').textContent = yankeeSwap.giftLimit;
+        document.getElementById('giftLimitRules').textContent = yankeeSwap.giftLimit;
+        document.getElementById('whoPlays').textContent = yankeeSwap.whoPlays;
+        document.getElementById('finalNote').textContent = yankeeSwap.finalNote;
+    } else {
+        document.getElementById('yankeeSwapSection').style.display = 'none';
+        document.querySelector('.yankee-link-btn').style.display = 'none';
+        document.querySelector('.swapper-box').style.display = 'none';
+        // Hide Yankee Swap tab and switch to Families tab
+        document.querySelector('[data-tab="yankee-swap"]').style.display = 'none';
+        switchTab('families');
+    }
+}
+
 // Countdown Timer
 function startCountdown() {
-    // Party date: December 13, 2025 at 6 PM
-    const partyDate = new Date('December 13, 2025 18:00:00').getTime();
+    if (!config) return;
+    const partyDate = new Date(config.party.partyDateTime).getTime();
 
     function updateCountdown() {
         const now = new Date().getTime();
@@ -342,6 +422,42 @@ function renderFamilies() {
         </div>
         `;
     }).join('');
+}
+
+// Render all food items for the Food tab
+function renderAllFood() {
+    const container = document.getElementById('allFoodList');
+
+    if (!foodItems || foodItems.length === 0) {
+        container.innerHTML = '<p class="no-food-message">No food items yet. Add them in the Families tab!</p>';
+        return;
+    }
+
+    // Group food items by family
+    const foodByFamily = {};
+    foodItems.forEach(item => {
+        const family = families.find(f => f.id === item.familyId);
+        const familyName = family ? family.name : 'Unknown Family';
+
+        if (!foodByFamily[familyName]) {
+            foodByFamily[familyName] = [];
+        }
+        foodByFamily[familyName].push(item);
+    });
+
+    // Render grouped food items
+    container.innerHTML = Object.entries(foodByFamily).map(([familyName, items]) => `
+        <div class="food-category-card">
+            <h3>${escapeHtml(familyName)}</h3>
+            <ul class="food-category-list">
+                ${items.map(item => `
+                    <li class="food-category-item">
+                        <span class="food-item-name">${escapeHtml(item.item)}</span>
+                    </li>
+                `).join('')}
+            </ul>
+        </div>
+    `).join('');
 }
 
 // UI Functions - Food Management

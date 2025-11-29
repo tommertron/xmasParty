@@ -12,7 +12,7 @@ npm install --production
 
 # Restart the server
 echo "🔄 Restarting server..."
-pm2 restart xmas-party
+pm2 restart xmasparty
 
 echo "✅ Deploy complete!"
 pm2 status

@@ -45,18 +45,26 @@ function closeMobileMenu() {
 
 // Initialize app
 async function init() {
-    await loadConfig();
-    await loadFamilies();
-    await loadFood();
-    applyConfig();
-    renderFamilies();
-    updateCounts();
-    startCountdown();
+    try {
+        await loadConfig();
+        await loadFamilies();
+        await loadFood();
+        applyConfig();
+        renderFamilies();
+        updateCounts();
+        startCountdown();
+    } catch (error) {
+        console.error('Failed to initialize app:', error);
+        document.getElementById('stickyTitle').textContent = 'Error loading - check console';
+    }
 }
 
 // Load and apply config
 async function loadConfig() {
     const response = await fetch('/api/config');
+    if (!response.ok) {
+        throw new Error(`Config API failed: ${response.status}`);
+    }
     config = await response.json();
 }
 

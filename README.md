@@ -1,12 +1,6 @@
-# Christmas Party Planner 2025
+# Christmas Party Planner
 
-A festive web app for organizing your Christmas party with family RSVPs, food planning, and Yankee Swap!
-
-## Party Details
-- **Date:** December 13th, 2025
-- **Location:** Tom & Erin's Place
-- **Time:** Arrive by 6 PM
-- **Yankee Swap:** $20 gift limit, kids & adults play together!
+A festive web app for organizing your Christmas party with family RSVPs, food planning, and Yankee Swap coordination.
 
 ## Features
 - Track families and their confirmation status (Invited, Confirmed, Maybe, Not Coming)

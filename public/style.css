@@ -644,6 +644,33 @@ body {
     font-size: 0.9em;
 }
 
+/* Donate Banner */
+.donate-banner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: white;
+    padding: 8px 15px;
+    text-decoration: none;
+    transition: background 0.2s ease;
+}
+
+.donate-banner:hover {
+    background: #fff8e1;
+}
+
+.donate-text {
+    color: #333;
+    font-size: 0.9em;
+    font-weight: 500;
+}
+
+.donate-logo {
+    height: 35px;
+    width: auto;
+}
+
 /* Footer */
 .site-footer {
     text-align: center;
@@ -1367,6 +1394,19 @@ body {
 
     .rules-icon {
         font-size: 0.8em;
+    }
+
+    .donate-banner {
+        padding: 6px 10px;
+        gap: 8px;
+    }
+
+    .donate-text {
+        font-size: 0.75em;
+    }
+
+    .donate-logo {
+        height: 25px;
     }
 
     .member-columns {

@@ -217,6 +217,26 @@ body {
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
 }
 
+.yankee-link-btn {
+    background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+    color: #165b33;
+    padding: 10px 20px;
+    border-radius: 20px;
+    text-decoration: none;
+    font-weight: bold;
+    font-size: 0.9em;
+    box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+    transition: all 0.3s ease;
+    display: inline-block;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.yankee-link-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 215, 0, 0.6);
+}
+
 .instructions {
     text-align: center;
     padding: 20px;
@@ -1011,6 +1031,12 @@ body {
     }
 
     .guest-counter-sticky {
+        width: 100%;
+    }
+
+    .yankee-link-btn {
+        font-size: 0.75em;
+        padding: 8px 16px;
         width: 100%;
     }
 }

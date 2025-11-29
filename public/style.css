@@ -906,7 +906,7 @@ body {
 
 @media (max-width: 768px) {
     body {
-        padding-top: 240px; /* More space for wrapped sticky header */
+        padding-top: 140px; /* Reduced space for compact mobile header */
     }
 
     .container {
@@ -938,8 +938,13 @@ body {
     }
 
     /* Sticky header mobile adjustments */
+    .sticky-header {
+        padding: 6px 12px;
+    }
+
     .sticky-content {
         justify-content: center;
+        gap: 10px;
     }
 
     .header-compact {
@@ -947,20 +952,46 @@ body {
         width: 100%;
     }
 
+    .header-compact h1 {
+        font-size: 1.1em;
+        margin-bottom: 3px;
+    }
+
+    .party-details-compact {
+        font-size: 0.7em;
+    }
+
     .party-details-compact span {
         display: block;
-        margin: 3px 0;
+        margin: 2px 0;
+    }
+
+    .countdown-container {
+        padding: 8px 12px;
+    }
+
+    .countdown-label {
+        font-size: 0.7em;
+        margin-bottom: 3px;
     }
 
     .counters-sticky {
         flex-direction: column;
-        gap: 10px;
+        gap: 6px;
         width: 100%;
     }
 
     .counter-box {
         min-width: auto;
-        padding: 8px 15px;
+        padding: 6px 12px;
+    }
+
+    .counter-box .label {
+        font-size: 0.65em;
+    }
+
+    .counter-box .count {
+        font-size: 1.5em;
     }
 
     .member-columns {
@@ -968,11 +999,15 @@ body {
     }
 
     .countdown-timer {
-        gap: 10px;
+        gap: 8px;
     }
 
     .countdown-value {
-        font-size: 1.5em;
+        font-size: 1.2em;
+    }
+
+    .countdown-unit-label {
+        font-size: 0.6em;
     }
 
     .guest-counter-sticky {

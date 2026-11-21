@@ -3,194 +3,195 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#123524">
     <title>Christmas Party</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700;9..144,900&family=Nunito+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <ul class="lightrope">
-        <li></li><li></li><li></li><li></li><li></li><li></li><li></li><li></li><li></li><li></li>
-        <li></li><li></li><li></li><li></li><li></li><li></li><li></li><li></li><li></li><li></li>
-        <li></li><li></li><li></li><li></li><li></li><li></li><li></li><li></li><li></li><li></li>
-        <li></li><li></li><li></li><li></li><li></li><li></li><li></li><li></li><li></li><li></li>
-        <li></li><li></li>
-    </ul>
+    <div class="snow" aria-hidden="true"></div>
 
-    <div class="snowflakes" aria-hidden="true">
-        <div class="snowflake">❅</div>
-        <div class="snowflake">❆</div>
-        <div class="snowflake">❅</div>
-        <div class="snowflake">❆</div>
-        <div class="snowflake">❅</div>
-        <div class="snowflake">❆</div>
-        <div class="snowflake">❅</div>
-        <div class="snowflake">❆</div>
-    </div>
+    <header class="hero">
+        <ul class="lights" aria-hidden="true"></ul>
+        <p class="eyebrow"><span id="hosts">Tom &amp; Erin</span>'s annual</p>
+        <h1>Christmas Party <span class="year" id="year">2026</span></h1>
+        <p class="details">
+            <span>📅 <span id="date"></span></span>
+            <span>🕕 <span id="timeLong"></span></span>
+        </p>
 
-    <!-- Sticky Header -->
-    <div class="sticky-header">
-        <div class="sticky-content">
-            <div class="header-compact">
-                <h1>🎄 <span id="stickyTitle">Loading...</span></h1>
-                <div class="party-details-compact">
-                    <span>📅 <span id="stickyDate"></span></span>
-                    <span>🏠 <span id="stickyLocation"></span></span>
-                    <span>🕖 <span id="stickyTime"></span></span>
-                </div>
-            </div>
-
-            <div class="countdown-container">
-                <div class="countdown-label">Time Until Party!</div>
-                <div class="countdown-timer">
-                    <div class="countdown-unit">
-                        <div class="countdown-value" id="days">0</div>
-                        <div class="countdown-unit-label">Days</div>
-                    </div>
-                    <div class="countdown-unit">
-                        <div class="countdown-value" id="hours">0</div>
-                        <div class="countdown-unit-label">Hours</div>
-                    </div>
-                    <div class="countdown-unit">
-                        <div class="countdown-value" id="minutes">0</div>
-                        <div class="countdown-unit-label">Min</div>
-                    </div>
-                    <div class="countdown-unit">
-                        <div class="countdown-value" id="seconds">0</div>
-                        <div class="countdown-unit-label">Sec</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="counters-sticky">
-                <button class="counter-box guests-box" onclick="switchTab('families')">
-                    <div class="label">Confirmed Guests</div>
-                    <div class="count" id="guestCount">0</div>
-                </button>
-                <button class="counter-box swapper-box" onclick="switchTab('yankee-swap')">
-                    <div class="label">Yankee Swappers <span class="rules-icon">📋</span></div>
-                    <div class="count" id="swapperCount">0</div>
-                </button>
-                <button class="counter-box food-box" onclick="switchTab('food')">
-                    <div class="label">Food Items <span class="rules-icon">🍽️</span></div>
-                    <div class="count" id="foodCount">0</div>
-                </button>
-                <a href="https://www.dailybread.ca/?form=donate&utm_source=google&utm_medium=cpc&utm_campaign=SEP-Google-PMax-Branded&dv=c&network=x&gad_source=1&gad_campaignid=21423183549&gbraid=0AAAAA9TlPZOFQ8M7rN1OfxpEkK5AxTZEk&gclid=Cj0KCQiA0KrJBhCOARIsAGIy9wA5nnqM7_U7A4mLqU5F_KIC-b9dwJuLY6SP5MsXN2mCbAG1e2wI2lUaAk9MEALw_wcB" target="_blank" class="donate-btn">
-                    <img src="daily-bread-logo.png" alt="Daily Bread Food Bank" class="donate-logo">
-                    <span>Donate</span>
-                </a>
-            </div>
-
+        <div class="countdown" id="countdown" role="timer" aria-live="off">
+            <div><b id="cd-days">–</b><small>days</small></div>
+            <div><b id="cd-hours">–</b><small>hours</small></div>
+            <div><b id="cd-minutes">–</b><small>min</small></div>
+            <div><b id="cd-seconds">–</b><small>sec</small></div>
         </div>
 
-        <!-- Tab Navigation -->
-        <nav class="tab-nav">
-            <button class="hamburger-btn" onclick="toggleMobileMenu()" aria-label="Menu">
-                <span class="hamburger-line"></span>
-                <span class="hamburger-line"></span>
-                <span class="hamburger-line"></span>
-            </button>
-            <div class="tab-buttons">
-                <button class="tab-btn active" data-tab="families" onclick="switchTab('families')">👨‍👩‍👧‍👦 Families</button>
-                <button class="tab-btn" data-tab="yankee-swap" onclick="switchTab('yankee-swap')">🎁 Yankee Swap</button>
-                <button class="tab-btn" data-tab="food" onclick="switchTab('food')">🍽️ Food</button>
-            </div>
-        </nav>
+        <div class="stats members-only">
+            <button class="stat" data-goto="rsvp"><b id="stat-coming">0</b><span>coming</span></button>
+            <button class="stat" data-goto="swap" id="stat-swap-box"><b id="stat-swap">0</b><span>swapping</span></button>
+            <button class="stat" data-goto="karaoke" id="stat-karaoke-box"><b id="stat-karaoke">0</b><span>singing</span></button>
+            <button class="stat" data-goto="food"><b id="stat-food">0</b><span>dishes</span></button>
+        </div>
+    </header>
+
+    <!-- Front door -->
+    <section class="gate" id="gate">
+        <div class="card gate-card">
+            <h2>You're invited! 🎄</h2>
+            <p>Enter your family's password to RSVP and see who's coming. It came with your invite.</p>
+            <form class="gate-form" data-form="login">
+                <input name="password" id="loginPassword" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="e.g. tinsel-reindeer-42" required aria-label="Family password">
+                <button class="btn">Come on in</button>
+            </form>
+            <p class="muted small">Lost it? Ask Tom or Erin.</p>
+        </div>
+    </section>
+
+    <div class="whoami members-only" id="signedIn">
+        <span id="signedInAs"></span>
+        <button class="link-btn" type="button" data-action="logout">Sign out</button>
     </div>
 
-    <div class="container">
-        <!-- Families Tab -->
-        <div class="tab-content active" id="tab-families">
-            <div class="instructions">
-                <p>Add your family, who's coming, and what they're bringing below!</p>
+    <nav class="tabs members-only" aria-label="Sections">
+        <button class="tab active" data-tab="rsvp">✉️ <span>RSVP</span></button>
+        <button class="tab" data-tab="swap" id="tab-btn-swap">🎁 <span>Yankee Swap</span></button>
+        <button class="tab" data-tab="karaoke" id="tab-btn-karaoke">🎤 <span>Karaoke</span></button>
+        <button class="tab" data-tab="food">🍽️ <span>Food</span></button>
+    </nav>
+
+    <main class="members-only">
+        <!-- RSVP -->
+        <section class="panel active" id="panel-rsvp">
+            <div class="intro card">
+                <h2>Are you coming?</h2>
+                <p>Tap <b>Coming</b> or <b>Can't</b> for each person in your family. If you're coming, you can also opt in to the 🎁 Yankee Swap and 🎤 karaoke. <span id="rsvpBy"></span></p>
             </div>
 
-            <section class="families-section">
-                <div class="section-header">
-                    <h2>👨‍👩‍👧‍👦 Families</h2>
-                </div>
+            <div id="families" class="families"></div>
 
-                <div id="familiesList" class="families-list"></div>
+            <p class="not-listed">Someone missing from your family? Add them on your card. Whole family missing? Give Tom a shout.</p>
 
-                <div class="add-family-footer">
-                    <button class="btn btn-add" onclick="showAddFamilyForm()">+ Add Family</button>
-                    <div id="addFamilyForm" class="form-container" style="display: none;">
-                        <input type="text" id="familyNameInput" placeholder="Family name (e.g., 'The Smiths')">
-                        <button class="btn btn-primary" onclick="addFamily()">Add</button>
-                        <button class="btn btn-secondary" onclick="hideAddFamilyForm()">Cancel</button>
+            <div class="card host-panel host-only">
+                <div class="host-head">
+                    <h3>🔒 Family passwords <small>(host only)</small></h3>
+                    <div>
+                        <button class="btn btn-small btn-ghost" type="button" data-action="copy-passwords">Copy all</button>
+                        <button class="btn btn-small btn-ghost" type="button" data-action="host-logout">Log out</button>
                     </div>
                 </div>
-            </section>
-        </div><!-- end tab-families -->
+                <p class="muted small">Each family's password is their key to the whole site. Send it along with the invite.</p>
+                <ul id="passwords" class="passwords"></ul>
+                <h4>Add a family</h4>
+                <form class="inline-form" data-form="add-family">
+                    <input name="name" maxlength="60" placeholder="Family name, e.g. The Smiths" required>
+                    <button class="btn">Add family</button>
+                </form>
+            </div>
+        </section>
 
-        <!-- Yankee Swap Tab -->
-        <div class="tab-content" id="tab-yankee-swap">
-            <div class="yankee-swap-section" id="yankeeSwapSection">
-            <div class="yankee-swap-header">
-                <h2>🎁 Yankee Swap!</h2>
-                <p class="yankee-teaser">Bring a wrapped gift (<span id="giftLimit">$20</span> limit) for the gift exchange!</p>
-                <button class="theme-btn" id="themeBtn" onclick="toggleTheme(event)">🎵 Play Theme</button>
-                <audio id="yankeeTheme" src="Yankee swap.mp3"></audio>
+        <!-- Yankee Swap -->
+        <section class="panel" id="panel-swap">
+            <div class="card swap-hero">
+                <p class="kicker">Optional, $<span id="giftLimitNum">20</span> limit</p>
+                <h2>This year's theme: <span id="themeName" class="accent"></span></h2>
+                <p id="themePitch" class="lead"></p>
+                <button class="btn btn-ghost" id="themeBtn" type="button">🎵 Play the theme song</button>
+                <audio id="themeAudio" src="Yankee%20swap.mp3" preload="none"></audio>
             </div>
 
-            <div class="swappers-section swappers-top">
-                <h3>Brave Swappers</h3>
-                <div id="swappersList" class="swappers-list">
-                    <p class="no-swappers">No swappers yet. Move people to "Coming + Swapping" in the Families tab!</p>
-                </div>
+            <div class="card">
+                <h3>Need ideas?</h3>
+                <ul class="examples" id="themeExamples"></ul>
+                <p class="fineprint" id="themeFineprint"></p>
             </div>
 
-            <div class="yankee-rules" id="yankeeRules">
+            <div class="card">
+                <h3>Brave swappers</h3>
+                <div id="swappers"></div>
+                <p class="muted">Playing? Tick 🎁 next to your name on the RSVP tab.</p>
+            </div>
+
+            <div class="card rules">
+                <h3>The rules</h3>
                 <p class="rules-final">These are the final rules. There shall be no changes.</p>
-
-                <div class="rule-section">
-                    <strong>Gift Limit:</strong> <span id="giftLimitRules">$20</span>
-                </div>
-                <div class="rule-section">
-                    <strong>Who's Playing:</strong> <span id="whoPlays">One combined game including both kids and adults.</span>
-                </div>
-
-                <div class="rule-section">
-                    <strong>How It Works:</strong>
-                    <ol id="yankeeRulesList">
-                        <li>Everyone brings a wrapped gift and puts it in the pile.</li>
-                        <li>Each player draws a number. That's the order in which you'll take a turn.</li>
-                        <li>Player 1 picks any gift from the pile and opens it.</li>
-                        <li>Player 2 can either:
-                            <ul>
-                                <li>steal Player 1's opened gift, or</li>
-                                <li>choose a wrapped gift from the pile to open.</li>
-                            </ul>
-                        </li>
-                        <li>Play continues in number order. On your turn, you can either steal any previously opened gift or open a new one.</li>
-                        <li>A gift can only be stolen once per turn, and three times total. After a gift has been stolen three times, it's "frozen" and can't be taken again.</li>
-                        <li>If your gift is stolen, you immediately take another turn by choosing a new wrapped gift to open.</li>
-                        <li>After all gifts are opened, the first player gets one last chance to steal any unfrozen gift.</li>
-                    </ol>
-                </div>
-
-                <div class="rule-section final-note">
-                    <strong>Final notes:</strong> <span id="finalNote">Have fun, keep it light, and aim for gifts that are kid-friendly and adult-friendly so everyone can play on equal footing.</span>
-                </div>
+                <dl>
+                    <dt>Gift limit</dt><dd id="giftLimit">$20</dd>
+                    <dt>Who plays</dt><dd id="whoPlays"></dd>
+                </dl>
+                <ol>
+                    <li>Everyone brings one wrapped gift for the pile.</li>
+                    <li>Everyone draws a number. That's your turn order.</li>
+                    <li>Player 1 opens any gift from the pile.</li>
+                    <li>Each player after that either <b>steals</b> any opened gift or <b>opens</b> a new one.</li>
+                    <li>If your gift is stolen, you immediately steal or open again (but you can't steal straight back).</li>
+                    <li>A gift can be stolen three times. After the third steal it's frozen and stays put.</li>
+                    <li>Once every gift is open, Player 1 gets one last chance to steal any unfrozen gift.</li>
+                </ol>
+                <p class="final-note" id="finalNote"></p>
             </div>
-        </div>
-        </div><!-- end tab-yankee-swap -->
+        </section>
 
-        <!-- Food Tab -->
-        <div class="tab-content" id="tab-food">
-            <section class="food-overview-section">
-                <div class="section-header">
-                    <h2>🍽️ Party Menu</h2>
-                </div>
-                <p class="food-edit-note">To add or remove food items, go to the Families tab.</p>
-                <div id="allFoodList" class="all-food-list">
-                    <p class="no-food-message">No food items yet. Add them in the Families tab!</p>
-                </div>
-            </section>
-        </div><!-- end tab-food -->
-    </div>
+        <!-- Karaoke -->
+        <section class="panel" id="panel-karaoke">
+            <div class="card karaoke-hero">
+                <h2>Karaoke night 🎤</h2>
+                <p id="karaokePitch" class="lead"></p>
+                <p class="secret">🤫 Song requests are top secret. Only Tom can see them, so no one gets spoiled. </p>
+            </div>
 
-    <footer class="site-footer">
-        &copy; 2025 Tommer Heavy Industries
+            <div class="card">
+                <h3>Request a song</h3>
+                <form class="request-form" data-form="karaoke">
+                    <label class="host-only-field">Family (host) <select name="familyId" id="reqFamily"></select></label>
+                    <label>Who's asking? <select name="memberId" id="reqMember" required></select></label>
+                    <label>Song <input name="song" maxlength="120" placeholder="Bohemian Rhapsody" required></label>
+                    <label>Artist <input name="artist" maxlength="80" placeholder="Queen"></label>
+                    <label class="wide">Anything else? <input name="note" maxlength="200" placeholder="Duet with Erin, dedicated to Uncle Mike, etc."></label>
+                    <button class="btn wide">Send it to the secret songbook</button>
+                </form>
+                <p class="songbook-count"><b id="songCount">0</b> <span id="songCountLabel">songs</span> in the secret songbook so far.</p>
+            </div>
+
+            <div class="card">
+                <h3>Who's singing</h3>
+                <div id="singers"></div>
+                <p class="muted">Want in? Tick 🎤 next to your name on the RSVP tab.</p>
+            </div>
+
+            <div class="card host-panel host-only">
+                <div class="host-head">
+                    <h3>🔒 The secret songbook <small>(host only)</small></h3>
+                    <div>
+                        <button class="btn btn-small btn-ghost" type="button" data-action="copy-songs">Copy list</button>
+                        <button class="btn btn-small btn-ghost" type="button" data-action="host-logout">Log out</button>
+                    </div>
+                </div>
+                <div id="songbook"></div>
+            </div>
+        </section>
+
+        <!-- Food -->
+        <section class="panel" id="panel-food">
+            <div class="card intro">
+                <h2>The menu</h2>
+                <p>Add what your family is bringing on the RSVP tab, under your family's card.</p>
+            </div>
+            <div id="menu" class="menu"></div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <a class="donate" id="donate" href="https://www.dailybread.ca/?form=donate" target="_blank" rel="noopener">
+            <img src="daily-bread-logo.png" alt="">
+            <span>Feeling festive? <b>Donate to Daily Bread</b></span>
+        </a>
+        <p>&copy; <span id="footerYear">2026</span> Tommer Heavy Industries</p>
     </footer>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
     <script src="app.js"></script>
 </body>

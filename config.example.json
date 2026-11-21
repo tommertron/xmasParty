@@ -1,17 +1,75 @@
 {
+  "hostKey": "change-me-to-something-long-and-random",
   "party": {
-    "title": "Christmas Party 2025",
-    "hosts": "Your Name",
-    "date": "December 25th",
-    "dateShort": "Dec 25",
-    "time": "6 PM - Late",
-    "timeLong": "6 PM until whenever!",
-    "partyDateTime": "2025-12-25T18:00:00"
+    "title": "Christmas Party 2026",
+    "hosts": "Tom & Erin",
+    "date": "Sunday, December 20",
+    "dateShort": "Sun Dec 20",
+    "time": "6 PM – ???",
+    "timeLong": "6 PM until the last power ballad",
+    "partyDateTime": "2026-12-20T18:00:00-05:00",
+    "rsvpBy": "December 13"
   },
   "yankeeSwap": {
     "enabled": true,
+    "optional": true,
     "giftLimit": "$20",
-    "whoPlays": "One combined game including both kids and adults. Choose a gift that anyone could enjoy.",
-    "finalNote": "Have fun, keep it light, and aim for gifts that are kid-friendly and adult-friendly so everyone can play on equal footing."
+    "theme": {
+      "name": "Made in Canada",
+      "pitch": "Every gift has to be made in Canada, or be extremely Canadian. If it's from here, it counts.",
+      "examples": [
+        [
+          "Maple anything",
+          "Syrup, cookies, maple butter",
+          "the sweetest classic"
+        ],
+        [
+          "Homemade",
+          "Butter tarts, Nanaimo bars, jam",
+          "your kitchen is in Canada, so it counts"
+        ],
+        [
+          "Canadian candy",
+          "Coffee Crisp, Caramilk, Big Turk",
+          "a bag of the good stuff"
+        ],
+        [
+          "A local maker",
+          "Candles, mugs, soap from a market",
+          "Toronto is full of them"
+        ],
+        [
+          "A Canadian book",
+          "Any Canadian author, kids or grown-up",
+          "bonus points for Robert Munsch"
+        ],
+        [
+          "A Canadian album",
+          "Shania, Rush, Alanis, Drake",
+          "karaoke homework"
+        ],
+        [
+          "Cozy gear",
+          "A tuque or mitts from a Canadian brand",
+          "for the walk home"
+        ],
+        [
+          "Hockey stuff",
+          "Pucks, tape, a mini stick",
+          "street hockey, game on"
+        ]
+      ],
+      "fineprint": "Homemade counts. Close enough counts. A good gift that isn't Canadian still goes in the pile."
+    },
+    "whoPlays": "One combined game for kids and adults, so pick something anyone could enjoy.",
+    "finalNote": "Keep it light, keep it kid-friendly, and remember: stealing is encouraged."
+  },
+  "karaoke": {
+    "enabled": true,
+    "pitch": "New this year: karaoke! A whole new tradition, baby. Tell us if you're in, and send a song request or two."
+  },
+  "donate": {
+    "label": "Daily Bread Food Bank",
+    "url": "https://www.dailybread.ca/?form=donate"
   }
 }

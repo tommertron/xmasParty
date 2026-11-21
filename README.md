@@ -3,7 +3,11 @@
 A festive web app for organizing your Christmas party with family RSVPs, food planning, and Yankee Swap coordination.
 
 ## Features
-- Track families and their confirmation status (Invited, Confirmed, Maybe, Not Coming)
+- Every family signs in with its own password (the host sees and resets them in host mode); a family can only change its own RSVPs, people, food and songs
+- RSVP per person (Coming / Can't), with opt-ins for the Yankee Swap and karaoke
+- Yankee Swap tab with a configurable gift theme, examples and rules
+- Karaoke tab: anyone can send a song request; only the host can read them
+  (open the site once as `https://<site>/?host=<hostKey>` to unlock the secret songbook on that device)
 - Add/remove family members for each family
 - Automatic guest count for confirmed attendees
 - Food planner to coordinate what each family is bringing
@@ -35,6 +39,16 @@ A festive web app for organizing your Christmas party with family RSVPs, food pl
 That's it! The app will create a `data/` directory automatically and store:
 - `data/families.json` - Family and member information
 - `data/food.json` - Food items each family is bringing
+- `data/karaoke.json` - Secret song requests (served only with the host key)
+
+## New year, same guest list
+
+```bash
+node scripts/new-season.js 2025          # dry run: lists who carries over
+node scripts/new-season.js 2025 --apply  # archives to data/archive/2025/, resets everyone to invited
+```
+
+Then edit `config.json` (date, theme, and a long random `hostKey`) and restart.
 
 ## Production Deployment (nginx)
 

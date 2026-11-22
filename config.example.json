@@ -3,11 +3,11 @@
   "party": {
     "title": "Christmas Party 2026",
     "hosts": "Tom & Erin",
-    "date": "Sunday, December 20",
-    "dateShort": "Sun Dec 20",
+    "date": "Saturday, December 19",
+    "dateShort": "Sat Dec 19",
     "time": "6 PM – ???",
     "timeLong": "6 PM until the last power ballad",
-    "partyDateTime": "2026-12-20T18:00:00-05:00",
+    "partyDateTime": "2026-12-19T18:00:00-05:00",
     "rsvpBy": "December 13"
   },
   "yankeeSwap": {

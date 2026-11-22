@@ -1,16 +1,17 @@
 // ---------- state ----------
 let config = {};
-let families = [];
+let people = [];        // everyone, once signed in
+let names = [];         // the public guest list: { id, name, claimed }
 let food = [];
 let songCount = 0;
-let me = null;          // { familyId, name } once a family has signed in
+let me = null;          // { groupId, code, names } once signed in with a code
 let hostKey = null;
 let isHost = false;     // only true once the server has accepted the key
 let songbook = [];
-let passwords = [];
+let codes = [];
 
 const $ = id => document.getElementById(id);
-const KEYS = { host: 'xmasHostKey', family: 'xmasFamilyPass', member: 'xmasReqMember' };
+const KEYS = { host: 'xmasHostKey', code: 'xmasCode', member: 'xmasReqMember' };
 const store = {
     get: k => { try { return localStorage.getItem(k); } catch { return null; } },
     set: (k, v) => { try { localStorage.setItem(k, v); } catch {} },
@@ -29,13 +30,19 @@ function toast(message) {
     toast.timer = setTimeout(() => t.classList.remove('show'), 2600);
 }
 
+// "Tom", "Tom & Erin", "Tom, Erin & Maggie"
+function joinNames(list) {
+    if (list.length < 3) return list.join(' & ');
+    return `${list.slice(0, -1).join(', ')} & ${list[list.length - 1]}`;
+}
+
 // ---------- api ----------
 async function api(path, { method = 'GET', body } = {}) {
     const headers = {};
     if (body) headers['Content-Type'] = 'application/json';
     if (hostKey) headers['X-Host-Key'] = hostKey;
-    const familyPass = store.get(KEYS.family);
-    if (familyPass) headers['X-Family-Pass'] = familyPass;
+    const code = store.get(KEYS.code);
+    if (code) headers['X-Code'] = code;
     const res = await fetch(`/api${path}`, { method, headers, body: body ? JSON.stringify(body) : undefined });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
@@ -47,8 +54,8 @@ async function api(path, { method = 'GET', body } = {}) {
 }
 
 async function refresh() {
-    [families, food, { count: songCount }] = await Promise.all([
-        api('/families'), api('/food'), api('/karaoke/summary'),
+    [people, food, { count: songCount }, names] = await Promise.all([
+        api('/people'), api('/food'), api('/karaoke/summary'), api('/names'),
     ]);
     render();
 }
@@ -67,7 +74,7 @@ async function act(fn, successMessage) {
 
 // ---------- signing in ----------
 async function enter() {
-    // Who are we? Host first, then a remembered family password.
+    // Who are we? Host first, then a remembered code.
     me = null;
     isHost = false;
     try {
@@ -76,7 +83,7 @@ async function enter() {
     } catch (e) {
         if (e.status === 429) toast(e.message);
         if (hostKey && e.status === 401) { hostKey = null; store.del(KEYS.host); }
-        store.del(KEYS.family);
+        store.del(KEYS.code);
         return signedOut();
     }
 
@@ -84,28 +91,82 @@ async function enter() {
     document.body.classList.toggle('is-host', isHost);
     $('signedInAs').innerHTML = isHost
         ? 'Host mode: you can change everything'
-        : `Signed in as <b>${esc(me.name)}</b>`;
+        : `Your code: <code class="my-code">${esc(me.code)}</code> <button class="link-btn" type="button" data-action="copy-code">Copy</button> · share it with your household`;
 
     config = await api('/config/full');
     applyConfig();
     await refresh();
-    if (isHost) await Promise.all([loadSongbook(), loadPasswords()]);
+    if (isHost) await Promise.all([loadSongbook(), loadCodes()]);
 }
 
-function signedOut(message) {
+async function signedOut(message) {
     me = null;
     isHost = false;
-    store.del(KEYS.family);
+    store.del(KEYS.code);
     document.body.classList.remove('signed-in', 'is-host');
     if (message) toast(message);
-    setTimeout(() => $('loginPassword').focus(), 50);
+    try {
+        names = await api('/names');
+    } catch { names = []; }
+    renderNamePicker($('nameList'), 'Nobody on the list yet.');
+}
+
+// ---------- claiming a name ----------
+function ask(dialog) {
+    return new Promise(resolve => {
+        dialog.addEventListener('close', () => resolve(dialog.returnValue), { once: true });
+        dialog.returnValue = '';
+        dialog.showModal();
+    });
+}
+
+async function claim(personId) {
+    const person = names.find(n => n.id === personId);
+    if (!person || person.claimed) return;
+    const hadCode = Boolean(store.get(KEYS.code));
+    $('claimText').innerHTML = hadCode
+        ? `Add <b>${esc(person.name)}</b> to your code? You'll be able to change their RSVP.`
+        : `You're about to RSVP as, or for, <b>${esc(person.name)}</b>.`;
+    $('claimYes').textContent = hadCode ? `Yes, add ${person.name}` : 'Yes, that’s us';
+    if (await ask($('claimDialog')) !== 'yes') return;
+
+    try {
+        const res = await api(`/names/${personId}/claim`, { method: 'POST' });
+        store.set(KEYS.code, res.code);
+        if (!hadCode) {
+            $('codeShown').textContent = res.code;
+            await enter();
+            await ask($('codeDialog'));
+            toast(`Welcome, ${person.name}! 🎄`);
+        } else {
+            await enter();
+            toast(`${person.name} is on your code now`);
+        }
+    } catch (e) {
+        if (e.status === 401 && hadCode) { await signedOut('Please sign in again'); return; }
+        toast(e.message);
+        names = await api('/names').catch(() => names);
+        if (document.body.classList.contains('signed-in')) render(); else renderNamePicker($('nameList'));
+    }
+}
+
+function renderNamePicker(el, emptyText = '') {
+    const open = names.filter(n => !n.claimed);
+    const taken = names.filter(n => n.claimed);
+    if (!names.length) { el.innerHTML = `<p class="muted">${emptyText}</p>`; return; }
+    el.innerHTML =
+        (open.length
+            ? open.map(n => `<button class="name-btn" type="button" data-action="claim" data-person="${esc(n.id)}">${esc(n.name)}</button>`).join('')
+            : '<p class="muted">Everyone on the list has RSVPed. 🎉</p>') +
+        (taken.length && !document.body.classList.contains('signed-in')
+            ? `<p class="muted small taken">Already in: ${taken.map(n => esc(n.name)).join(', ')}</p>`
+            : '');
 }
 
 // ---------- config ----------
 function applyPublicConfig(party = {}) {
     const year = (party.partyDateTime || '').slice(0, 4) || new Date().getFullYear();
     document.title = `${party.title || 'Christmas Party'} · ${party.hosts || ''}'s`;
-    $('hosts').textContent = party.hosts || '';
     $('year').textContent = year;
     $('footerYear').textContent = year;
     $('date').textContent = party.date || '';
@@ -166,22 +227,23 @@ function startCountdown(partyDateTime) {
 }
 
 // ---------- rendering ----------
-const everyone = () => families.flatMap(f => f.members.map(m => ({ ...m, family: f.name })));
-const canEdit = familyId => isHost || me?.familyId === familyId;
+const nameOf = groupId => joinNames(people.filter(p => p.groupId === groupId).map(p => p.name));
+const canEdit = groupId => isHost || (groupId && me?.groupId === groupId);
 
 function render() {
-    renderFamilies();
+    renderPeople();
     renderSwappers();
     renderSingers();
     renderMenu();
     renderStats();
     renderRequestForm();
+    if (!isHost) renderNamePicker($('claimList'));
+    $('claimMore').hidden = isHost || !names.some(n => !n.claimed);
     $('songCount').textContent = songCount;
     $('songCountLabel').textContent = songCount === 1 ? 'song' : 'songs';
 }
 
 function renderStats() {
-    const people = everyone();
     $('stat-coming').textContent = people.filter(p => p.status === 'coming').length;
     $('stat-swap').textContent = people.filter(p => p.swap).length;
     $('stat-karaoke').textContent = people.filter(p => p.karaoke).length;
@@ -201,26 +263,30 @@ function personRow(m) {
             ${config.yankeeSwap?.enabled ? `<button class="chip ${m.swap ? 'on' : ''}" data-action="toggle" data-field="swap" aria-pressed="${m.swap}" title="Playing the Yankee Swap">🎁 Swap</button>` : ''}
             ${config.karaoke?.enabled ? `<button class="chip ${m.karaoke ? 'on' : ''}" data-action="toggle" data-field="karaoke" aria-pressed="${m.karaoke}" title="Up for karaoke">🎤 Sing</button>` : ''}
         </div>
-        <button class="icon-btn" data-action="remove-person" title="Remove ${esc(m.name)}" aria-label="Remove ${esc(m.name)}">×</button>
+        <button class="icon-btn" data-action="remove-person" title="Take ${esc(m.name)} off" aria-label="Take ${esc(m.name)} off">×</button>
     </li>`;
 }
 
-function badge(f) {
-    const n = f.members.filter(m => m.status === 'coming').length;
-    const replied = f.members.some(m => m.status !== 'invited');
+function badge(list) {
+    const n = list.filter(m => m.status === 'coming').length;
+    const replied = list.some(m => m.status !== 'invited');
     return `<span class="badge ${n ? 'yes' : ''}">${n ? `${n} coming` : replied ? 'Can’t make it' : 'No reply yet'}</span>`;
 }
 
-function editableCard(f) {
-    const dishes = food.filter(i => i.familyId === f.id);
+// One card per code. groupId null = names nobody has claimed (host only).
+function editableCard(groupId, title) {
+    const list = people.filter(p => p.groupId === groupId);
+    const dishes = groupId ? food.filter(i => i.groupId === groupId) : [];
     return `
-    <article class="family card ${me?.familyId === f.id ? 'mine' : ''}" data-family="${esc(f.id)}">
-        <header class="family-head"><h3>${esc(f.name)}</h3>${badge(f)}</header>
-        <ul class="people">${f.members.map(personRow).join('') || '<li class="muted">Nobody added yet.</li>'}</ul>
+    <article class="family card ${me?.groupId === groupId ? 'mine' : ''}" data-group="${esc(groupId || '')}">
+        <header class="family-head"><h3>${esc(title)}</h3>${badge(list)}</header>
+        <ul class="people">${list.map(personRow).join('') || '<li class="muted">Nobody here.</li>'}</ul>
+        ${groupId && !isHost ? `
         <form class="inline-form small" data-form="add-person">
-            <input name="name" maxlength="60" placeholder="Add a person…" required>
+            <input name="name" maxlength="60" placeholder="Someone not on the list? Add them…" required>
             <button class="btn btn-small btn-ghost">Add</button>
-        </form>
+        </form>` : ''}
+        ${groupId ? `
         <div class="bringing">
             <h4>🍽️ Bringing</h4>
             ${dishes.length ? `<ul class="dishes">${dishes.map(d => `
@@ -229,63 +295,58 @@ function editableCard(f) {
                 <input name="item" maxlength="120" placeholder="What are you bringing?" required>
                 <button class="btn btn-small btn-ghost">Add</button>
             </form>
-        </div>
-        ${isHost ? '<button class="link-btn" data-action="remove-family">Remove this family (host)</button>' : ''}
+        </div>` : ''}
     </article>`;
 }
 
-function readOnlyCard(f) {
+function everyoneCard(list) {
     const icon = m => (m.swap ? ' 🎁' : '') + (m.karaoke ? ' 🎤' : '');
+    const sorted = [...list].sort((a, b) => a.name.localeCompare(b.name));
     return `
     <article class="family card readonly">
-        <header class="family-head"><h3>${esc(f.name)}</h3>${badge(f)}</header>
-        <ul class="ro-people">${f.members.map(m => `<li class="${m.status}">${esc(m.name)}${icon(m)}</li>`).join('')}</ul>
+        <header class="family-head"><h3>Everyone else</h3>${badge(list)}</header>
+        <ul class="ro-people">${sorted.map(m => `<li class="${m.status}">${esc(m.name)}${icon(m)}</li>`).join('')}</ul>
     </article>`;
 }
 
-function renderFamilies() {
-    if (!families.length) {
-        $('families').innerHTML = '<p class="empty card">No families yet.</p>';
+function renderPeople() {
+    if (!people.length) {
+        $('families').innerHTML = '<p class="empty card">Nobody on the list yet.</p>';
         return;
     }
     if (isHost) {
-        $('families').innerHTML = families.map(editableCard).join('');
+        const groupIds = [...new Set(people.map(p => p.groupId).filter(Boolean))];
+        const unclaimed = people.some(p => !p.groupId) ? editableCard(null, 'Not claimed yet') : '';
+        $('families').innerHTML = groupIds.map(id => editableCard(id, nameOf(id))).join('') + unclaimed;
         return;
     }
-    const mine = families.find(f => f.id === me?.familyId);
-    const others = families.filter(f => f !== mine);
+    const others = people.filter(p => p.groupId !== me?.groupId);
     $('families').innerHTML =
-        (mine ? editableCard(mine) : '') +
-        (others.length ? `<p class="section-label">Everyone else</p>${others.map(readOnlyCard).join('')}` : '');
+        (me ? editableCard(me.groupId, 'You') : '') +
+        (others.length ? everyoneCard(others) : '');
 }
 
-// "Who's asking?" dropdown: your own family's people (hosts pick a family first).
+// "Who's asking?" dropdown: the people on your code (hosts: anyone claimed).
 function renderRequestForm() {
-    const famSel = $('reqFamily');
-    if (isHost) {
-        const keep = famSel.value;
-        famSel.innerHTML = families.map(f => `<option value="${esc(f.id)}">${esc(f.name)}</option>`).join('');
-        if (families.some(f => f.id === keep)) famSel.value = keep;
-    }
-    const fam = families.find(f => f.id === (isHost ? famSel.value : me?.familyId));
+    const choices = people.filter(p => (isHost ? p.groupId : p.groupId === me?.groupId));
     const memSel = $('reqMember');
     const keep = memSel.value || store.get(KEYS.member) || '';
     memSel.innerHTML = '<option value="">Choose…</option>' +
-        (fam?.members || []).map(m => `<option value="${esc(m.id)}">${esc(m.name)}</option>`).join('');
-    if (fam?.members.some(m => m.id === keep)) memSel.value = keep;
+        choices.map(m => `<option value="${esc(m.id)}">${esc(m.name)}</option>`).join('');
+    if (choices.some(m => m.id === keep)) memSel.value = keep;
 }
 
-function nameList(people, emptyText) {
-    if (!people.length) return `<p class="empty">${emptyText}</p>`;
-    return `<ul class="name-list">${people.map(p => `<li>${esc(p.name)} <small>${esc(p.family)}</small></li>`).join('')}</ul>`;
+function nameList(list, emptyText) {
+    if (!list.length) return `<p class="empty">${emptyText}</p>`;
+    return `<ul class="name-list">${list.map(p => `<li>${esc(p.name)}</li>`).join('')}</ul>`;
 }
 
 function renderSwappers() {
-    $('swappers').innerHTML = nameList(everyone().filter(p => p.swap), 'Nobody yet. Who’s brave enough to go first?');
+    $('swappers').innerHTML = nameList(people.filter(p => p.swap), 'Nobody yet. Who’s brave enough to go first?');
 }
 
 function renderSingers() {
-    $('singers').innerHTML = nameList(everyone().filter(p => p.karaoke), 'No singers yet. The mic is waiting.');
+    $('singers').innerHTML = nameList(people.filter(p => p.karaoke), 'No singers yet. The mic is waiting.');
 }
 
 function renderMenu() {
@@ -293,17 +354,15 @@ function renderMenu() {
         $('menu').innerHTML = '<p class="empty card">Nothing on the menu yet. Be the hero who brings dessert.</p>';
         return;
     }
-    $('menu').innerHTML = families
-        .map(f => ({ f, items: food.filter(i => i.familyId === f.id) }))
-        .filter(x => x.items.length)
-        .map(({ f, items }) => `
+    const groupIds = [...new Set(food.map(i => i.groupId))];
+    $('menu').innerHTML = groupIds.map(id => `
             <div class="card menu-card">
-                <h3>${esc(f.name)}</h3>
-                <ul>${items.map(i => `<li>${esc(i.item)}</li>`).join('')}</ul>
+                <h3>${esc(nameOf(id) || 'Someone')}</h3>
+                <ul>${food.filter(i => i.groupId === id).map(i => `<li>${esc(i.item)}</li>`).join('')}</ul>
             </div>`).join('');
 }
 
-// ---------- host (secret songbook + family passwords) ----------
+// ---------- host (secret songbook + codes) ----------
 function hostKeyFromUrl() {
     const params = new URLSearchParams(location.search);
     const fromUrl = params.get('host');
@@ -327,20 +386,20 @@ async function loadSongbook() {
     $('songbook').innerHTML = `<ol class="songbook">${sorted.map(r => `
         <li>
             <div><b>${esc(r.song)}</b>${r.artist ? ` <span class="muted">· ${esc(r.artist)}</span>` : ''}</div>
-            <div class="muted small">from ${esc(r.from || 'someone')}${r.family ? ` (${esc(r.family)})` : ''}${r.note ? ` · “${esc(r.note)}”` : ''}</div>
+            <div class="muted small">from ${esc(r.from || 'someone')}${r.note ? ` · “${esc(r.note)}”` : ''}</div>
             <button class="icon-btn" data-action="remove-song" data-song="${esc(r.id)}" aria-label="Remove ${esc(r.song)}">×</button>
         </li>`).join('')}</ol>`;
 }
 
-async function loadPasswords() {
+async function loadCodes() {
     if (!isHost) return;
-    passwords = await api('/host/families');
-    $('passwords').innerHTML = passwords.map(p => `
-        <li data-family="${esc(p.id)}">
-            <b>${esc(p.name)}</b>
-            <code>${esc(p.password)}</code>
-            <button class="btn btn-small btn-ghost" type="button" data-action="new-password">New password</button>
-        </li>`).join('') || '<li class="muted">No families yet.</li>';
+    codes = await api('/host/groups');
+    $('codes').innerHTML = codes.map(g => `
+        <li data-group="${esc(g.id)}">
+            <b>${esc(joinNames(g.names))}</b>
+            <code>${esc(g.code)}</code>
+            <button class="btn btn-small btn-ghost" type="button" data-action="new-code">New code</button>
+        </li>`).join('') || '<li class="muted">Nobody has claimed a name yet.</li>';
 }
 
 // ---------- tabs ----------
@@ -362,12 +421,14 @@ document.addEventListener('click', async e => {
 
     const btn = e.target.closest('[data-action]');
     if (!btn) return;
-    const familyId = btn.closest('[data-family]')?.dataset.family;
+    const groupId = btn.closest('[data-group]')?.dataset.group;
     const memberId = btn.closest('[data-member]')?.dataset.member;
-    const member = families.find(f => f.id === familyId)?.members.find(m => m.id === memberId);
-    const memberPath = `/families/${familyId}/members/${memberId}`;
+    const member = people.find(p => p.id === memberId);
+    const memberPath = `/people/${memberId}`;
 
     switch (btn.dataset.action) {
+        case 'claim':
+            return claim(btn.dataset.person);
         case 'status': {
             // Tapping the selected answer again clears it back to "no reply yet".
             const status = member.status === btn.dataset.value ? 'invited' : btn.dataset.value;
@@ -378,13 +439,20 @@ document.addEventListener('click', async e => {
             const field = btn.dataset.field;
             return act(() => api(memberPath, { method: 'PUT', body: { [field]: !member[field] } }));
         }
-        case 'remove-person':
-            if (!confirm(`Remove ${member.name} from the list?`)) return;
-            return act(() => api(memberPath, { method: 'DELETE' }));
-        case 'remove-family': {
-            const fam = families.find(f => f.id === familyId);
-            if (!confirm(`Remove ${fam.name} and everyone in it?`)) return;
-            return act(async () => { await api(`/families/${familyId}`, { method: 'DELETE' }); await loadPasswords(); });
+        case 'remove-person': {
+            if (isHost) {
+                const unclaim = member.groupId && confirm(`Put ${member.name} back on the list, unclaimed? (Cancel for more options.)`);
+                if (unclaim) return act(() => api(`${memberPath}/release`, { method: 'POST' }), `${member.name} is unclaimed`);
+                if (!confirm(`Delete ${member.name} from the guest list entirely?`)) return;
+                return act(() => api(`${memberPath}/release`, { method: 'POST', body: { remove: true } }), `Removed ${member.name}`);
+            }
+            if (!confirm(`Take ${member.name} off your code? Their RSVP is cleared and their name goes back on the list.`)) return;
+            const lastOne = people.filter(p => p.groupId === me?.groupId).length === 1;
+            try {
+                await api(`${memberPath}/release`, { method: 'POST' });
+            } catch (err) { return toast(err.message); }
+            if (lastOne) return signedOut(`${member.name} is back on the list`);
+            return act(async () => {}, `${member.name} is off your code`);
         }
         case 'remove-food':
             return act(() => api(`/food/${btn.dataset.food}`, { method: 'DELETE' }));
@@ -401,24 +469,29 @@ document.addEventListener('click', async e => {
             try { await navigator.clipboard.writeText(text); toast('Songbook copied'); } catch { toast('Couldn’t copy'); }
             return;
         }
-        case 'copy-passwords': {
-            const text = passwords.map(p => `${p.name}: ${p.password}`).join('\n');
-            try { await navigator.clipboard.writeText(text); toast('Passwords copied'); } catch { toast('Couldn’t copy'); }
+        case 'copy-code': {
+            const code = store.get(KEYS.code) || '';
+            try { await navigator.clipboard.writeText(code); toast('Code copied'); } catch { toast('Couldn’t copy'); }
             return;
         }
-        case 'new-password': {
-            const fam = passwords.find(p => p.id === familyId);
-            if (!confirm(`Give ${fam.name} a new password? Their old one stops working, and anyone signed in with it gets signed out.`)) return;
+        case 'copy-codes': {
+            const text = codes.map(g => `${joinNames(g.names)}: ${g.code}`).join('\n');
+            try { await navigator.clipboard.writeText(text); toast('Codes copied'); } catch { toast('Couldn’t copy'); }
+            return;
+        }
+        case 'new-code': {
+            const g = codes.find(c => c.id === groupId);
+            if (!confirm(`Give ${joinNames(g.names)} a new code? The old one stops working, and anyone signed in with it gets signed out.`)) return;
             try {
-                await api(`/host/families/${familyId}/password`, { method: 'POST' });
-                await loadPasswords();
-                toast(`New password for ${fam.name}`);
+                await api(`/host/groups/${groupId}/code`, { method: 'POST' });
+                await loadCodes();
+                toast('New code made');
             } catch (err) { toast(err.message); }
             return;
         }
         case 'logout':
+            if (!isHost && !confirm(`Sign out? You'll need your code (${store.get(KEYS.code)}) to get back in.`)) return;
             if (isHost) { hostKey = null; store.del(KEYS.host); }
-            store.del(KEYS.family);
             return signedOut('Signed out. See you at the party!');
         case 'host-logout':
             hostKey = null;
@@ -433,34 +506,34 @@ document.addEventListener('submit', async e => {
     if (!form) return;
     e.preventDefault();
     const data = Object.fromEntries(new FormData(form));
-    const familyId = form.closest('[data-family]')?.dataset.family;
+    const groupId = form.closest('[data-group]')?.dataset.group;
 
     switch (form.dataset.form) {
         case 'login':
             try {
                 const res = await fetch('/api/login', {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ password: data.password }),
+                    body: JSON.stringify({ code: data.code }),
                 });
                 const body = await res.json().catch(() => ({}));
                 if (!res.ok) throw new Error(body.error || 'That didn’t work');
-                store.set(KEYS.family, data.password.trim());
+                store.set(KEYS.code, data.code.trim().toLowerCase().replace(/\s+/g, '-'));
                 form.reset();
                 await enter();
-                toast(`Welcome, ${body.name}! 🎄`);
+                toast(`Welcome, ${joinNames(body.names)}! 🎄`);
             } catch (err) {
                 toast(err.message);
-                $('loginPassword').select();
+                $('loginCode').select();
             }
             return;
-        case 'add-family':
-            await act(async () => { await api('/families', { method: 'POST', body: data }); await loadPasswords(); }, `Added ${data.name}`);
+        case 'add-name':
+            await act(() => api('/people', { method: 'POST', body: data }), `Added ${data.name} to the list`);
             break;
         case 'add-person':
-            await act(() => api(`/families/${familyId}/members`, { method: 'POST', body: data }));
+            await act(() => api('/people', { method: 'POST', body: data }), `Added ${data.name}`);
             break;
         case 'add-food':
-            await act(() => api('/food', { method: 'POST', body: { familyId, item: data.item } }), 'Yum. Added to the menu.');
+            await act(() => api('/food', { method: 'POST', body: { groupId, item: data.item } }), 'Yum. Added to the menu.');
             break;
         case 'karaoke':
             try {
@@ -478,8 +551,6 @@ document.addEventListener('submit', async e => {
     }
     form.reset();
 });
-
-$('reqFamily').addEventListener('change', renderRequestForm);
 
 $('themeBtn').addEventListener('click', () => {
     const audio = $('themeAudio');
@@ -506,6 +577,8 @@ function decorate() {
 async function init() {
     decorate();
     hostKey = hostKeyFromUrl();
+    const oldPass = store.get('xmasFamilyPass'); // last version's family password is now that family's code
+    if (oldPass) { if (!store.get(KEYS.code)) store.set(KEYS.code, oldPass); store.del('xmasFamilyPass'); }
     try {
         const { party } = await api('/config');
         applyPublicConfig(party);
@@ -513,7 +586,7 @@ async function init() {
     } catch (e) {
         console.error(e);
     }
-    if (hostKey || store.get(KEYS.family)) await enter(); else signedOut();
+    if (hostKey || store.get(KEYS.code)) await enter(); else await signedOut();
     const start = location.hash.slice(1);
     if (['rsvp', 'swap', 'karaoke', 'food'].includes(start)) switchTab(start);
 }

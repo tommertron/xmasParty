@@ -15,7 +15,6 @@
 
     <header class="hero">
         <ul class="lights" aria-hidden="true"></ul>
-        <p class="eyebrow"><span id="hosts">Tom &amp; Erin</span>'s annual</p>
         <h1>Christmas Party <span class="year" id="year">2026</span></h1>
         <p class="details">
             <span>📅 <span id="date"></span></span>
@@ -41,9 +40,14 @@
     <section class="gate" id="gate">
         <div class="card gate-card">
             <h2>You're invited! 🎄</h2>
-            <p>Enter your family's password to RSVP and see who's coming. It came with your invite.</p>
+            <p>Find your name and tap it to RSVP. Doing it for your household too? Tap each of you here, one after the other, and you'll all share one code.</p>
+            <div id="nameList" class="name-picker"><p class="muted">Loading the guest list…</p></div>
+            <p class="muted small">Not on the list? Ask Tom or Erin.</p>
+        </div>
+        <div class="card gate-card">
+            <h3>Already have a code?</h3>
             <form class="gate-form" data-form="login">
-                <input name="password" id="loginPassword" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="e.g. tinsel-reindeer-42" required aria-label="Family password">
+                <input name="code" id="loginCode" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="e.g. tinsel-reindeer-42" required aria-label="Your code">
                 <button class="btn">Come on in</button>
             </form>
             <p class="muted small">Lost it? Ask Tom or Erin.</p>
@@ -67,27 +71,31 @@
         <section class="panel active" id="panel-rsvp">
             <div class="intro card">
                 <h2>Are you coming?</h2>
-                <p>Tap <b>Coming</b> or <b>Can't</b> for each person in your family. If you're coming, you can also opt in to the 🎁 Yankee Swap and 🎤 karaoke. <span id="rsvpBy"></span></p>
+                <p>Tap <b>Coming</b> or <b>Can't</b> for each person on your code. If you're coming, you can also opt in to the 🎁 Yankee Swap and 🎤 karaoke. <span id="rsvpBy"></span></p>
             </div>
 
             <div id="families" class="families"></div>
 
-            <p class="not-listed">Someone missing from your family? Add them on your card. Whole family missing? Give Tom a shout.</p>
+            <details class="card claim-more guest-only" id="claimMore">
+                <summary>RSVPing for someone else in your household?</summary>
+                <p class="muted small">Tap their name and they'll go on your code, so you can all use the same one.</p>
+                <div id="claimList" class="name-picker"></div>
+            </details>
 
             <div class="card host-panel host-only">
                 <div class="host-head">
-                    <h3>🔒 Family passwords <small>(host only)</small></h3>
+                    <h3>🔒 Codes <small>(host only)</small></h3>
                     <div>
-                        <button class="btn btn-small btn-ghost" type="button" data-action="copy-passwords">Copy all</button>
+                        <button class="btn btn-small btn-ghost" type="button" data-action="copy-codes">Copy all</button>
                         <button class="btn btn-small btn-ghost" type="button" data-action="host-logout">Log out</button>
                     </div>
                 </div>
-                <p class="muted small">Each family's password is their key to the whole site. Send it along with the invite.</p>
-                <ul id="passwords" class="passwords"></ul>
-                <h4>Add a family</h4>
-                <form class="inline-form" data-form="add-family">
-                    <input name="name" maxlength="60" placeholder="Family name, e.g. The Smiths" required>
-                    <button class="btn">Add family</button>
+                <p class="muted small">A code appears when someone claims a name. If someone loses theirs, read it to them from here.</p>
+                <ul id="codes" class="passwords"></ul>
+                <h4>Add someone to the guest list</h4>
+                <form class="inline-form" data-form="add-name">
+                    <input name="name" maxlength="60" placeholder="Name, e.g. Uncle Bob" required>
+                    <button class="btn">Add</button>
                 </form>
             </div>
         </section>
@@ -145,7 +153,6 @@
             <div class="card">
                 <h3>Request a song</h3>
                 <form class="request-form" data-form="karaoke">
-                    <label class="host-only-field">Family (host) <select name="familyId" id="reqFamily"></select></label>
                     <label>Who's asking? <select name="memberId" id="reqMember" required></select></label>
                     <label>Song <input name="song" maxlength="120" placeholder="Bohemian Rhapsody" required></label>
                     <label>Artist <input name="artist" maxlength="80" placeholder="Queen"></label>
@@ -177,7 +184,7 @@
         <section class="panel" id="panel-food">
             <div class="card intro">
                 <h2>The menu</h2>
-                <p>Add what your family is bringing on the RSVP tab, under your family's card.</p>
+                <p>Add what you're bringing on the RSVP tab, under your card.</p>
             </div>
             <div id="menu" class="menu"></div>
         </section>
@@ -190,6 +197,30 @@
         </a>
         <p>&copy; <span id="footerYear">2026</span> Tommer Heavy Industries</p>
     </footer>
+
+    <dialog id="claimDialog" class="dialog">
+        <form method="dialog">
+            <h3>Are you sure?</h3>
+            <p id="claimText"></p>
+            <p class="muted small">Only tap your own name, or someone in your household. Once a name is claimed, nobody else can change it.</p>
+            <div class="dialog-buttons">
+                <button class="btn btn-ghost" value="cancel">Oops, no</button>
+                <button class="btn" value="yes" id="claimYes">Yes, that's us</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="codeDialog" class="dialog">
+        <form method="dialog">
+            <h3>🎟️ Here's your code</h3>
+            <p class="big-code"><code id="codeShown"></code></p>
+            <p><b>Keep it somewhere safe.</b> You'll need it to change your RSVP later or from another phone. Share it with your household so they can add songs, food and their Yankee Swap answer too.</p>
+            <div class="dialog-buttons">
+                <button class="btn btn-ghost" type="button" data-action="copy-code">Copy code</button>
+                <button class="btn" value="ok">Got it</button>
+            </div>
+        </form>
+    </dialog>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 

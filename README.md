@@ -3,15 +3,14 @@
 A festive web app for organizing your Christmas party with family RSVPs, food planning, and Yankee Swap coordination.
 
 ## Features
-- Every family signs in with its own password (the host sees and resets them in host mode); a family can only change its own RSVPs, people, food and songs
+- No families, just a list of people. Guests find their name and claim it ("that's me"), after an "are you sure?" box, and get a code like `tinsel-reindeer-42`. Claiming more names in the same browser puts them on the same code, so a household shares one. A code can only change its own people, food and songs; a claimed name can't be claimed again (the host can unclaim it). The host sees every code in host mode.
 - RSVP per person (Coming / Can't), with opt-ins for the Yankee Swap and karaoke
 - Yankee Swap tab with a configurable gift theme, examples and rules
 - Karaoke tab: anyone can send a song request; only the host can read them
   (open the site once as `https://<site>/?host=<hostKey>` to unlock the secret songbook on that device)
-- Add/remove family members for each family
+- Guests can add someone who isn't on the list (onto their own code); the host adds names to the main list
 - Automatic guest count for confirmed attendees
-- Food planner to coordinate what each family is bringing
-- No authentication needed - simple and open editing
+- Food planner to coordinate what everyone is bringing
 - Christmas-themed design with animated snowflakes
 - Data stored in simple JSON files for easy server-side editing
 
@@ -37,15 +36,20 @@ A festive web app for organizing your Christmas party with family RSVPs, food pl
    ```
 
 That's it! The app will create a `data/` directory automatically and store:
-- `data/families.json` - Family and member information
-- `data/food.json` - Food items each family is bringing
+- `data/people.json` - Everyone on the guest list, their RSVP and which code (group) claimed them
+- `data/groups.json` - The codes
+- `data/food.json` - Food items, per code
 - `data/karaoke.json` - Secret song requests (served only with the host key)
+
+## Upgrading from family passwords (Nov 2026)
+
+On first start the server converts `data/families.json` into `people.json` + `groups.json` and renames it `families.migrated.json`. A family that had already RSVPed, added food or requested a song keeps its old password as its code; everyone else becomes an unclaimed name.
 
 ## New year, same guest list
 
 ```bash
 node scripts/new-season.js 2025          # dry run: lists who carries over
-node scripts/new-season.js 2025 --apply  # archives to data/archive/2025/, resets everyone to invited
+node scripts/new-season.js 2025 --apply  # archives to data/archive/2025/, resets everyone to invited and unclaimed
 ```
 
 Then edit `config.json` (date, theme, and a long random `hostKey`) and restart.

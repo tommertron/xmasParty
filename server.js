@@ -55,67 +55,114 @@ async function readConfig() {
 
 // Last year's statuses were invited / swapping / attending / notcoming.
 // Swapping is now its own yes/no, so map the old values onto the new shape.
-function normalizeMember(m) {
+function normalizePerson(m) {
   const legacy = { swapping: ['coming', true], attending: ['coming', false] };
   let status = m.status;
   let swap = Boolean(m.swap);
   if (legacy[status]) [status, swap] = [legacy[status][0], m.swap ?? legacy[status][1]];
   if (!STATUSES.includes(status)) status = 'invited';
-  return { id: m.id, name: m.name, status, swap, karaoke: Boolean(m.karaoke) };
+  return {
+    id: m.id, name: m.name, status, swap, karaoke: Boolean(m.karaoke),
+    groupId: m.groupId || null, added: Boolean(m.added),
+  };
 }
 
-// Internal shape, including each family's password. Never send this out as-is.
-async function loadFamilies() {
-  const families = await readJSON('families.json');
-  return families.map(f => ({
-    id: f.id, name: f.name, password: f.password || null,
-    members: (f.members || []).map(normalizeMember),
-  }));
-}
+// ---------- codes ----------
+//
+// There are no families any more, just people. Claiming a person ("that's me")
+// hands out a code; claiming more people in the same browser puts them on the
+// same code, so a household ends up sharing one. The code is the only key to
+// change those people, their food and their song requests.
 
-const publicFamilies = families => families.map(({ password, ...f }) => f);
-
-// ---------- passwords ----------
-
-// Friendly, phone-typeable passwords like "tinsel-reindeer-42".
+// Friendly, phone-typeable codes like "tinsel-reindeer-42".
 const WORDS = ['tinsel', 'reindeer', 'snowman', 'cocoa', 'mitten', 'sleigh', 'garland', 'holly',
   'eggnog', 'chimney', 'nutcracker', 'snowflake', 'gingerbread', 'stocking', 'candycane', 'icicle',
   'toboggan', 'wreath', 'sugarplum', 'chestnut', 'jingle', 'frosty', 'mistletoe', 'cranberry',
   'pinecone', 'sweater', 'carol', 'lantern', 'snowball', 'fruitcake', 'tuque', 'elf'];
 
-// The password alone identifies the family, so they must all be different.
-function newPassword(families) {
-  const taken = new Set(families.map(f => (f.password || '').toLowerCase()));
+// The code alone identifies the group, so they must all be different.
+function newCode(groups) {
+  const taken = new Set(groups.map(g => g.code.toLowerCase()));
   const pick = () => WORDS[crypto.randomInt(WORDS.length)];
   for (;;) {
     let a = pick(), b = pick();
     while (b === a) b = pick();
-    const pw = `${a}-${b}-${crypto.randomInt(10, 100)}`;
-    if (!taken.has(pw)) return pw;
+    const code = `${a}-${b}-${crypto.randomInt(10, 100)}`;
+    if (!taken.has(code)) return code;
   }
 }
 
-const tidy = pw => (typeof pw === 'string' ? pw.trim().toLowerCase().replace(/\s+/g, '-') : '');
+const tidy = code => (typeof code === 'string' ? code.trim().toLowerCase().replace(/\s+/g, '-') : '');
 
-function findFamilyByPassword(families, given) {
-  const pw = Buffer.from(tidy(given));
-  if (!pw.length) return null;
-  return families.find(f => {
-    if (!f.password) return false;
-    const real = Buffer.from(f.password.toLowerCase());
-    return real.length === pw.length && crypto.timingSafeEqual(real, pw);
+function findGroupByCode(groups, given) {
+  const code = Buffer.from(tidy(given));
+  if (!code.length) return null;
+  return groups.find(g => {
+    const real = Buffer.from(g.code.toLowerCase());
+    return real.length === code.length && crypto.timingSafeEqual(real, code);
   }) || null;
 }
 
-// Slow down password guessing: 10 wrong tries per IP per 15 minutes.
-const failures = new Map();
-function tooManyFailures(ip) {
-  const now = Date.now();
-  const recent = (failures.get(ip) || []).filter(t => now - t < 15 * 60e3);
-  failures.set(ip, recent);
-  return recent.length >= 10;
+// One-time move from last version's families.json. Families that had already
+// done something (an RSVP, food, a song) become a group whose code is their old
+// family password, so nobody loses their answers or gets locked out. Everyone
+// else is just a name on the list, waiting to be claimed.
+async function migrateFromFamilies() {
+  if (await readJSON('people.json', null)) return false;
+  const families = await readJSON('families.json', null);
+  if (!families) return false;
+  const food = await readJSON('food.json');
+  const karaoke = await readJSON('karaoke.json');
+  const people = [];
+  const groups = [];
+  for (const f of families) {
+    const members = (f.members || []).map(normalizePerson);
+    const active = members.some(m => m.status !== 'invited')
+      || food.some(i => i.familyId === f.id) || karaoke.some(r => r.familyId === f.id);
+    if (active && f.password) {
+      groups.push({ id: f.id, code: f.password, createdAt: new Date().toISOString() });
+      members.forEach(m => { m.groupId = f.id; });
+    }
+    people.push(...members);
+  }
+  const groupIds = new Set(groups.map(g => g.id));
+  await writeJSON('people.json', people);
+  await writeJSON('groups.json', groups);
+  await writeJSON('food.json', food.filter(i => groupIds.has(i.groupId || i.familyId))
+    .map(({ familyId, ...i }) => ({ ...i, groupId: i.groupId || familyId })));
+  await writeJSON('karaoke.json', karaoke.map(({ familyId, family, ...r }) => ({ ...r, groupId: r.groupId || familyId })));
+  await fs.rename(path.join(DATA_DIR, 'families.json'), path.join(DATA_DIR, 'families.migrated.json'));
+  console.log(`Migrated ${people.length} people from families.json (${groups.length} families kept their password as a code).`);
+  return true;
 }
-const noteFailure = ip => failures.set(ip, [...(failures.get(ip) || []), Date.now()]);
+
+const loadPeople = async () => (await readJSON('people.json')).map(normalizePerson);
+const loadGroups = () => readJSON('groups.json');
+
+// What signed-in guests see about everyone. groupId is an opaque id, not the code.
+const guestView = ({ added, ...p }) => p;
+// What anyone at all sees: a name to claim, and whether someone already has.
+const publicView = p => ({ id: p.id, name: p.name, claimed: Boolean(p.groupId) });
+
+const MAX_PER_GROUP = 10;
+
+// ---------- rate limits ----------
+
+// Slow down code guessing: 10 wrong tries per IP per 15 minutes.
+function limiter(max, windowMs) {
+  const hits = new Map();
+  return {
+    blocked(ip) {
+      const now = Date.now();
+      const recent = (hits.get(ip) || []).filter(t => now - t < windowMs);
+      hits.set(ip, recent);
+      return recent.length >= max;
+    },
+    note: ip => hits.set(ip, [...(hits.get(ip) || []), Date.now()]),
+  };
+}
+const wrongCodes = limiter(10, 15 * 60e3);
+const claims = limiter(20, 60 * 60e3); // a big household is ~6; 20 an hour is plenty
 
 // ---------- who's asking ----------
 
@@ -128,30 +175,29 @@ async function isHost(req) {
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
-// Returns { host: true }, { family }, or null.
+// Returns { host: true }, { group }, or null.
 async function whoIs(req) {
   if (await isHost(req)) return { host: true };
-  const given = req.get('X-Family-Pass');
+  const given = req.get('X-Code');
   if (!given) return null;
-  const family = findFamilyByPassword(await loadFamilies(), given);
-  if (!family) noteFailure(req.ip);
-  return family ? { family } : null;
+  const group = findGroupByCode(await loadGroups(), given);
+  if (!group) wrongCodes.note(req.ip);
+  return group ? { group } : null;
 }
 
-const canEdit = (who, familyId) => who.host || who.family?.id === familyId;
+const canEdit = (who, groupId) => who.host || (groupId && who.group?.id === groupId);
 
 const bad = (res, msg) => res.status(400).json({ error: msg });
 const missing = (res, what) => res.status(404).json({ error: `${what} not found` });
-const forbidden = res => res.status(403).json({ error: 'You can only change your own family' });
+const forbidden = res => res.status(403).json({ error: 'You can only change the people on your code' });
+const tooMany = res => res.status(429).json({ error: 'Too many wrong codes. Try again in 15 minutes.' });
 
-// level: 'public' | 'guest' (any family or host) | 'host'
+// level: 'public' | 'guest' (any code or host) | 'host'
 function route(level, handler) {
   return async (req, res) => {
     try {
       if (level !== 'public') {
-        if (tooManyFailures(req.ip)) {
-          return res.status(429).json({ error: 'Too many wrong passwords. Try again in 15 minutes.' });
-        }
+        if (wrongCodes.blocked(req.ip)) return tooMany(res);
         const who = await whoIs(req);
         if (!who || (level === 'host' && !who.host)) {
           return res.status(401).json({ error: level === 'host' ? 'Hosts only' : 'Please sign in' });
@@ -175,7 +221,7 @@ function clean(value, max) {
 
 // ---------- config & sign-in ----------
 
-// Only the invitation basics are public, for the sign-in page. The rest waits behind the door.
+// Only the invitation basics are public, for the front door. The rest waits behind a code.
 app.get('/api/config', route('public', async (req, res) => {
   const { party = {} } = await readConfig();
   const { title, hosts, date, timeLong, time, partyDateTime } = party;
@@ -187,121 +233,143 @@ app.get('/api/config/full', route('guest', async (req, res) => {
   res.json(config);
 }));
 
+// The guest list, names only, so people can find themselves.
+app.get('/api/names', route('public', async (req, res) => {
+  const people = await loadPeople();
+  res.json(people.map(publicView).sort((a, b) => a.name.localeCompare(b.name)));
+}));
+
+// "That's me." Anyone can claim a name nobody has claimed yet. Send your code
+// (X-Code) to add them to your group; without one you get a brand new code.
+app.post('/api/names/:id/claim', route('public', async (req, res) => {
+  if (wrongCodes.blocked(req.ip) || claims.blocked(req.ip)) {
+    return res.status(429).json({ error: 'That’s a lot of people! Give Tom a shout and he’ll sort it out.' });
+  }
+  const given = req.get('X-Code');
+  const result = await serialized(async () => {
+    const [people, groups] = await Promise.all([loadPeople(), loadGroups()]);
+    const person = people.find(p => p.id === req.params.id);
+    if (!person) return { status: 404, error: 'Person not found' };
+    if (person.groupId) {
+      return { status: 409, error: `Someone has already RSVPed for ${person.name}. If that wasn’t you, tell Tom or Erin.` };
+    }
+    let group = given ? findGroupByCode(groups, given) : null;
+    if (given && !group) { wrongCodes.note(req.ip); return { status: 401, error: 'That code isn’t one of ours' }; }
+    if (group && people.filter(p => p.groupId === group.id).length >= MAX_PER_GROUP) {
+      return { status: 400, error: 'That’s everyone one code can hold. Give Tom a shout.' };
+    }
+    if (!group) {
+      group = { id: newId(), code: newCode(groups), createdAt: new Date().toISOString() };
+      groups.push(group);
+      await writeJSON('groups.json', groups);
+    }
+    person.groupId = group.id;
+    await writeJSON('people.json', people);
+    claims.note(req.ip);
+    console.log(`claim: ${person.name} -> group ${group.id} from ${req.ip}`);
+    return { group, people };
+  });
+  if (result.error) return res.status(result.status).json({ error: result.error });
+  const { group, people } = result;
+  res.json({ code: group.code, groupId: group.id, names: people.filter(p => p.groupId === group.id).map(p => p.name) });
+}));
+
 app.post('/api/login', route('public', async (req, res) => {
-  if (tooManyFailures(req.ip)) {
-    return res.status(429).json({ error: 'Too many wrong passwords. Try again in 15 minutes.' });
+  if (wrongCodes.blocked(req.ip)) return tooMany(res);
+  const group = findGroupByCode(await loadGroups(), req.body.code);
+  if (!group) {
+    wrongCodes.note(req.ip);
+    return res.status(401).json({ error: 'That code isn’t one of ours. Check for typos?' });
   }
-  const family = findFamilyByPassword(await loadFamilies(), req.body.password);
-  if (!family) {
-    noteFailure(req.ip);
-    return res.status(401).json({ error: 'That password isn’t one of ours. Check your invite?' });
-  }
-  res.json({ familyId: family.id, name: family.name });
+  const names = (await loadPeople()).filter(p => p.groupId === group.id).map(p => p.name);
+  res.json({ groupId: group.id, names });
 }));
 
 app.get('/api/me', route('guest', async (req, res) => {
   const { who } = req;
-  res.json(who.host ? { host: true } : { familyId: who.family.id, name: who.family.name });
+  if (who.host) return res.json({ host: true });
+  const names = (await loadPeople()).filter(p => p.groupId === who.group.id).map(p => p.name);
+  res.json({ groupId: who.group.id, code: who.group.code, names });
 }));
 
-// ---------- host: family passwords ----------
+// ---------- host: codes ----------
 
-// Hosts see every family's password; any family missing one gets one now.
-app.get('/api/host/families', route('host', async (req, res) => {
-  const families = await serialized(async () => {
-    const list = await loadFamilies();
-    if (list.some(f => !f.password)) {
-      list.forEach(f => { f.password ||= newPassword(list); });
-      await writeJSON('families.json', list);
-    }
-    return list;
+app.get('/api/host/groups', route('host', async (req, res) => {
+  const [people, groups] = await Promise.all([loadPeople(), loadGroups()]);
+  res.json(groups
+    .map(g => ({ id: g.id, code: g.code, names: people.filter(p => p.groupId === g.id).map(p => p.name) }))
+    .filter(g => g.names.length));
+}));
+
+app.post('/api/host/groups/:id/code', route('host', async (req, res) => {
+  const code = await serialized(async () => {
+    const groups = await loadGroups();
+    const group = groups.find(g => g.id === req.params.id);
+    if (!group) return null;
+    group.code = newCode(groups);
+    await writeJSON('groups.json', groups);
+    return group.code;
   });
-  res.json(families.map(f => ({ id: f.id, name: f.name, password: f.password })));
+  code ? res.json({ code }) : missing(res, 'Code');
 }));
 
-app.post('/api/host/families/:id/password', route('host', async (req, res) => {
-  const password = await serialized(async () => {
-    const families = await loadFamilies();
-    const family = families.find(f => f.id === req.params.id);
-    if (!family) return null;
-    family.password = newPassword(families);
-    await writeJSON('families.json', families);
-    return family.password;
-  });
-  password ? res.json({ password }) : missing(res, 'Family');
-}));
+// ---------- people ----------
 
-// ---------- families & people ----------
+app.get('/api/people', route('guest', async (req, res) => res.json((await loadPeople()).map(guestView))));
 
-app.get('/api/families', route('guest', async (req, res) => res.json(publicFamilies(await loadFamilies()))));
-
-app.post('/api/families', route('host', async (req, res) => {
-  const name = clean(req.body.name, LIMITS.name);
-  if (!name) return bad(res, 'Family name is required');
-  const family = await serialized(async () => {
-    const families = await loadFamilies();
-    const f = { id: newId(), name, password: newPassword(families), members: [] };
-    families.push(f);
-    await writeJSON('families.json', families);
-    return f;
-  });
-  res.json(publicFamilies([family])[0]);
-}));
-
-app.delete('/api/families/:id', route('host', async (req, res) => {
-  await serialized(async () => {
-    const families = await loadFamilies();
-    await writeJSON('families.json', families.filter(f => f.id !== req.params.id));
-    const food = await readJSON('food.json');
-    await writeJSON('food.json', food.filter(i => i.familyId !== req.params.id));
-  });
-  res.json({ success: true });
-}));
-
-app.post('/api/families/:id/members', route('guest', async (req, res) => {
-  if (!canEdit(req.who, req.params.id)) return forbidden(res);
+// Hosts add names to the guest list (unclaimed). A guest can add someone to
+// their own code, e.g. a new partner, but only onto their own code.
+app.post('/api/people', route('guest', async (req, res) => {
   const name = clean(req.body.name, LIMITS.name);
   if (!name) return bad(res, 'Name is required');
+  const groupId = req.who.host ? null : req.who.group.id;
   const result = await serialized(async () => {
-    const families = await loadFamilies();
-    const family = families.find(f => f.id === req.params.id);
-    if (!family) return null;
-    const member = normalizeMember({ id: newId(), name, status: 'invited' });
-    family.members.push(member);
-    await writeJSON('families.json', families);
-    return member;
+    const people = await loadPeople();
+    if (groupId && people.filter(p => p.groupId === groupId).length >= MAX_PER_GROUP) return null;
+    const person = normalizePerson({ id: newId(), name, status: 'invited', groupId, added: Boolean(groupId) });
+    people.push(person);
+    await writeJSON('people.json', people);
+    return person;
   });
-  result ? res.json(result) : missing(res, 'Family');
+  result ? res.json(guestView(result)) : bad(res, 'That’s everyone one code can hold. Give Tom a shout.');
 }));
 
-app.put('/api/families/:familyId/members/:memberId', route('guest', async (req, res) => {
-  if (!canEdit(req.who, req.params.familyId)) return forbidden(res);
+app.put('/api/people/:id', route('guest', async (req, res) => {
   const { status, swap, karaoke } = req.body;
   if (status !== undefined && !STATUSES.includes(status)) return bad(res, 'Unknown status');
   const result = await serialized(async () => {
-    const families = await loadFamilies();
-    const member = families.find(f => f.id === req.params.familyId)
-      ?.members.find(m => m.id === req.params.memberId);
-    if (!member) return null;
-    if (status !== undefined) member.status = status;
-    if (swap !== undefined) member.swap = Boolean(swap);
-    if (karaoke !== undefined) member.karaoke = Boolean(karaoke);
-    if (member.status !== 'coming') { member.swap = false; member.karaoke = false; }
-    await writeJSON('families.json', families);
-    return member;
+    const people = await loadPeople();
+    const person = people.find(p => p.id === req.params.id);
+    if (!person) return 'missing';
+    if (!canEdit(req.who, person.groupId)) return 'forbidden';
+    if (status !== undefined) person.status = status;
+    if (swap !== undefined) person.swap = Boolean(swap);
+    if (karaoke !== undefined) person.karaoke = Boolean(karaoke);
+    if (person.status !== 'coming') { person.swap = false; person.karaoke = false; }
+    await writeJSON('people.json', people);
+    return person;
   });
-  result ? res.json(result) : missing(res, 'Person');
+  if (result === 'missing') return missing(res, 'Person');
+  if (result === 'forbidden') return forbidden(res);
+  res.json(guestView(result));
 }));
 
-app.delete('/api/families/:familyId/members/:memberId', route('guest', async (req, res) => {
-  if (!canEdit(req.who, req.params.familyId)) return forbidden(res);
-  await serialized(async () => {
-    const families = await loadFamilies();
-    const family = families.find(f => f.id === req.params.familyId);
-    if (family) family.members = family.members.filter(m => m.id !== req.params.memberId);
-    await writeJSON('families.json', families);
+// Take someone off your code. People you added yourself are removed; people from
+// the guest list go back on it, unclaimed, with their answers cleared.
+// Hosts can do either to anyone: { remove: true } deletes outright.
+app.post('/api/people/:id/release', route('guest', async (req, res) => {
+  const result = await serialized(async () => {
+    const people = await loadPeople();
+    const person = people.find(p => p.id === req.params.id);
+    if (!person) return 'gone';
+    if (!canEdit(req.who, person.groupId)) return 'forbidden';
+    const remove = person.added || (req.who.host && req.body.remove);
+    const next = remove ? people.filter(p => p !== person)
+      : people.map(p => (p === person ? normalizePerson({ id: p.id, name: p.name, status: 'invited' }) : p));
+    await writeJSON('people.json', next);
+    return remove ? 'removed' : 'released';
   });
-  res.json({ success: true });
+  result === 'forbidden' ? forbidden(res) : res.json({ result });
 }));
 
 // ---------- food ----------
@@ -310,19 +378,17 @@ app.get('/api/food', route('guest', async (req, res) => res.json(await readJSON(
 
 app.post('/api/food', route('guest', async (req, res) => {
   const item = clean(req.body.item, LIMITS.item);
-  const familyId = clean(req.body.familyId, 64);
-  if (!item || !familyId) return bad(res, 'Food item is required');
-  if (!canEdit(req.who, familyId)) return forbidden(res);
+  const groupId = req.who.host ? clean(req.body.groupId, 64) : req.who.group.id;
+  if (!item || !groupId) return bad(res, 'Food item is required');
   const result = await serialized(async () => {
-    const families = await loadFamilies();
-    if (!families.some(f => f.id === familyId)) return null;
+    if (!(await loadGroups()).some(g => g.id === groupId)) return null;
     const food = await readJSON('food.json');
-    const entry = { id: newId(), familyId, item };
+    const entry = { id: newId(), groupId, item };
     food.push(entry);
     await writeJSON('food.json', food);
     return entry;
   });
-  result ? res.json(result) : missing(res, 'Family');
+  result ? res.json(result) : missing(res, 'Code');
 }));
 
 app.delete('/api/food/:id', route('guest', async (req, res) => {
@@ -330,7 +396,7 @@ app.delete('/api/food/:id', route('guest', async (req, res) => {
     const food = await readJSON('food.json');
     const entry = food.find(i => i.id === req.params.id);
     if (!entry) return 'gone';
-    if (!canEdit(req.who, entry.familyId)) return 'forbidden';
+    if (!canEdit(req.who, entry.groupId)) return 'forbidden';
     await writeJSON('food.json', food.filter(i => i.id !== req.params.id));
     return 'ok';
   });
@@ -350,19 +416,16 @@ app.post('/api/karaoke', route('guest', async (req, res) => {
   const note = clean(req.body.note, LIMITS.note);
   if (!song) return bad(res, 'Which song?');
 
-  // A family can only request as one of its own people. Hosts can pick any family.
-  const familyId = req.who.host ? req.body.familyId : req.who.family.id;
-  const families = await loadFamilies();
-  const family = families.find(f => f.id === familyId);
-  const member = family?.members.find(m => m.id === req.body.memberId);
-  if (!family || !member) return bad(res, 'Pick who’s asking');
+  // You can only request as one of the people on your code. Hosts can pick anyone.
+  const person = (await loadPeople()).find(p => p.id === req.body.memberId);
+  if (!person || !(req.who.host || person.groupId === req.who.group.id)) return bad(res, 'Pick who’s asking');
 
   const ok = await serialized(async () => {
     const requests = await readJSON('karaoke.json');
     if (requests.length >= LIMITS.karaokeTotal) return false;
     requests.push({
       id: newId(), song, artist, note,
-      familyId: family.id, memberId: member.id, from: member.name, family: family.name,
+      groupId: person.groupId, memberId: person.id, from: person.name,
       at: new Date().toISOString(),
     });
     await writeJSON('karaoke.json', requests);
@@ -384,6 +447,6 @@ app.delete('/api/karaoke/:id', route('host', async (req, res) => {
 
 // ---------- start ----------
 
-fs.mkdir(DATA_DIR, { recursive: true }).then(() => {
+fs.mkdir(DATA_DIR, { recursive: true }).then(() => serialized(migrateFromFamilies)).then(() => {
   app.listen(PORT, () => console.log(`🎄 Christmas Party Planner running on http://localhost:${PORT}`));
 });

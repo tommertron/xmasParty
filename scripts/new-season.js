@@ -4,9 +4,9 @@
 //   node scripts/new-season.js 2025          # dry run: shows what would happen
 //   node scripts/new-season.js 2025 --apply  # does it
 //
-// Copies data/*.json to data/archive/<year>/, then keeps every family and person
-// but resets them all to "invited" (no swap, no karaoke), and empties the food
-// list and the karaoke requests.
+// Copies data/*.json to data/archive/<year>/, then keeps every person but resets
+// them all to "invited" and unclaimed (so last year's codes stop working), and
+// empties the food list and the karaoke requests.
 
 const fs = require('fs');
 const path = require('path');
@@ -25,12 +25,12 @@ const read = (f, fallback) => {
   return fs.existsSync(p) ? JSON.parse(fs.readFileSync(p, 'utf8')) : fallback;
 };
 
-const families = read('families.json', []);
+const people = read('people.json', []);
 const food = read('food.json', []);
 const karaoke = read('karaoke.json', []);
 
-console.log(`${families.length} families, ${families.reduce((n, f) => n + f.members.length, 0)} people carried over:`);
-for (const f of families) console.log(`  ${f.name}: ${f.members.map(m => m.name).join(', ') || '(nobody yet)'}`);
+console.log(`${people.length} people carried over: ${people.map(p => p.name).join(', ')}`);
+console.log('Everyone goes back to unclaimed, so last year\'s codes stop working.');
 console.log(`${food.length} food items and ${karaoke.length} karaoke requests will be cleared (archived first).`);
 
 if (!apply) {
@@ -43,18 +43,12 @@ if (fs.existsSync(archiveDir)) {
 }
 
 fs.mkdirSync(archiveDir, { recursive: true });
-for (const f of ['families.json', 'food.json', 'karaoke.json']) {
+for (const f of ['people.json', 'groups.json', 'food.json', 'karaoke.json']) {
   const p = path.join(dataDir, f);
   if (fs.existsSync(p)) fs.copyFileSync(p, path.join(archiveDir, f));
 }
 
-const reset = families.map(f => ({
-  id: f.id,
-  name: f.name,
-  ...(f.password ? { password: f.password } : {}),
-  members: f.members.map(m => ({ id: m.id, name: m.name, status: 'invited', swap: false, karaoke: false })),
-}));
-fs.writeFileSync(path.join(dataDir, 'families.json'), JSON.stringify(reset, null, 2));
-fs.writeFileSync(path.join(dataDir, 'food.json'), '[]\n');
-fs.writeFileSync(path.join(dataDir, 'karaoke.json'), '[]\n');
+const reset = people.map(p => ({ id: p.id, name: p.name, status: 'invited', swap: false, karaoke: false, groupId: null }));
+fs.writeFileSync(path.join(dataDir, 'people.json'), JSON.stringify(reset, null, 2));
+for (const f of ['groups.json', 'food.json', 'karaoke.json']) fs.writeFileSync(path.join(dataDir, f), '[]\n');
 console.log(`\nDone. Last year is in ${archiveDir}.`);
